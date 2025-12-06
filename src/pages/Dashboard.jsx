@@ -1,76 +1,79 @@
-import { useEffect, useState } from "react";
+// src/pages/Dashboard.jsx
+import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/SupabaseClient";
 import Sidebar from "../components/Sidebar";
 import { useAuth } from "../context/AuthContext";
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [data, setData] = useState([]);
+  const [loans, setLoans] = useState([]);
 
   useEffect(() => {
     if (!user) return;
-    fetchData();
+    const fetchLoans = async () => {
+      const { data, error } = await supabase.from("loans").select("*");
+      if (!error) setLoans(data);
+    };
+    fetchLoans();
   }, [user]);
 
-  const fetchData = async () => {
-    const { data, error } = await supabase.from("loans").select("*");
-    if (error) console.error(error);
-    else setData(data);
-  };
+  if (!user) return <div className="auth-container">Please login...</div>;
 
-  if (!user)
-    return (
-      <div style={{ textAlign: "center", marginTop: "2rem", color: "#333" }}>
-        Please login first
-      </div>
-    );
+  // Calculate stats
+  const activeLoans = loans.filter(l => l.status === 'active');
+  const settledLoans = loans.filter(l => l.status === 'settled');
+  const totalAmount = activeLoans.reduce((sum, l) => sum + (l.amount || 0), 0);
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#f5f5f5" }}>
+    <div className="app-container">
       <Sidebar />
-      <div style={{ flex: 1, padding: "2rem" }}>
-        <h1 style={{ color: "#333", marginBottom: "1rem" }}>
-          Welcome, {user.email}
-        </h1>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-            gap: "1rem",
-          }}
-        >
-          <div style={{ background: "#fff", padding: "1rem", borderRadius: "8px", boxShadow: "0 2px 6px rgba(0,0,0,0.1)" }}>
-            <h2>Total Loans</h2>
-            <p>{data.length}</p>
+      <div className="main-content">
+        <div className="dashboard-header">
+          <h1>Welcome back, {user.email.split('@')[0]}</h1>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="stats-grid">
+          <div className="card">
+            <h3>Active Loan Amount</h3>
+            <p className="amount">K {totalAmount.toLocaleString()}</p>
           </div>
-          <div style={{ background: "#fff", padding: "1rem", borderRadius: "8px", boxShadow: "0 2px 6px rgba(0,0,0,0.1)" }}>
-            <h2>Active Loans</h2>
-            <p>{data.filter(loan => loan.status === "active").length}</p>
+          <div className="card">
+            <h3>Active Loans</h3>
+            <p className="amount">{activeLoans.length}</p>
           </div>
-          <div style={{ background: "#fff", padding: "1rem", borderRadius: "8px", boxShadow: "0 2px 6px rgba(0,0,0,0.1)" }}>
-            <h2>Settled Loans</h2>
-            <p>{data.filter(loan => loan.status === "settled").length}</p>
+          <div className="card">
+            <h3>Settled Loans</h3>
+            <p className="amount">{settledLoans.length}</p>
           </div>
         </div>
-        <h2 style={{ marginTop: "2rem", color: "#333" }}>Loans Data</h2>
-        <div style={{ background: "#fff", padding: "1rem", borderRadius: "8px", boxShadow: "0 2px 6px rgba(0,0,0,0.1)", marginTop: "1rem" }}>
-          {data.length === 0 ? (
-            <p>No loans available</p>
+
+        {/* Loan Table */}
+        <h2>Loan History</h2>
+        <div className="table-container">
+          {loans.length === 0 ? (
+            <p style={{padding: '1rem'}}>No loans found.</p>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table>
               <thead>
                 <tr>
-                  <th style={{ borderBottom: "1px solid #ddd", padding: "8px" }}>Client</th>
-                  <th style={{ borderBottom: "1px solid #ddd", padding: "8px" }}>Amount</th>
-                  <th style={{ borderBottom: "1px solid #ddd", padding: "8px" }}>Status</th>
+                  <th>ID</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Date</th>
                 </tr>
               </thead>
               <tbody>
-                {data.map(loan => (
+                {loans.map((loan) => (
                   <tr key={loan.id}>
-                    <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>{loan.client_name}</td>
-                    <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>{loan.amount}</td>
-                    <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>{loan.status}</td>
+                    <td>#{loan.id.slice(0, 8)}...</td>
+                    <td>K {loan.amount.toLocaleString()}</td>
+                    <td>
+                      <span className={`status-badge status-${loan.status.toLowerCase()}`}>
+                        {loan.status}
+                      </span>
+                    </td>
+                    <td>{new Date(loan.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>
