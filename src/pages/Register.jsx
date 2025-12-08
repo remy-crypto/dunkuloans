@@ -2,7 +2,6 @@ import { useState } from "react";
 import { supabase } from "../lib/SupabaseClient";
 import { Link, useNavigate } from "react-router-dom";
 
-// Notice the 'export default' here:
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,15 +14,22 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // 1. Create Auth User
+      // 1. Sign Up the User (Authentication)
+      // We include metadata here so Supabase Auth knows the name too
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
       });
 
       if (authError) throw authError;
 
-      // 2. Manual Profile Creation (Bypasses the broken SQL Trigger)
+      // 2. Create the Profile (Database) - MANUAL INSERT
+      // This runs from the client side to avoid the 500 Server Error trigger
       if (authData.user) {
         const { error: profileError } = await supabase
           .from('profiles')
@@ -32,17 +38,21 @@ export default function Register() {
               id: authData.user.id,
               email: email,
               full_name: fullName,
-              role: 'borrower'
+              role: 'borrower' // Default role
             }
           ]);
-        
-        if (profileError) console.error("Profile creation warning:", profileError);
+
+        if (profileError) {
+          console.error("Profile creation failed:", profileError);
+          // We continue anyway because the Auth account was created successfully.
+        }
       }
 
       alert("Registration Successful! Please Log in.");
       navigate("/login");
 
     } catch (error) {
+      console.error("Registration Error:", error);
       alert(error.message);
     } finally {
       setLoading(false);
@@ -97,7 +107,7 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-lg shadow-md transition-all mt-2"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-lg shadow-md transition-all mt-2 disabled:opacity-50"
           >
             {loading ? "Creating Account..." : "Create Account"}
           </button>
