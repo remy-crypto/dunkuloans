@@ -13,24 +13,43 @@ export default function Register() {
     e.preventDefault();
     setLoading(true);
 
-    // 1. Sign up the user in Supabase Auth
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName, 
-        },
-      },
-    });
+    try {
+      // 1. Create the User (Auth)
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
 
-    if (error) {
-      alert(error.message);
-    } else {
-      alert("Registration Successful! Check your email to confirm.");
+      if (authError) throw authError;
+
+      // 2. Manually Create the Profile (Database)
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: authData.user.id,
+              email: email,
+              full_name: fullName,
+              role: 'borrower'
+            }
+          ]);
+
+        if (profileError) {
+          console.error("Profile creation failed:", profileError);
+          // We don't stop here, because the account is created.
+          // The dashboard will handle missing profiles gracefully.
+        }
+      }
+
+      alert("Registration Successful! Please Log in.");
       navigate("/login");
+
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
