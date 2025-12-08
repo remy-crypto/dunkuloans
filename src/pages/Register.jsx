@@ -34,65 +34,66 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-200">
-      <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-2xl">
-        <h2 className="text-3xl font-extrabold text-center text-slate-800 mb-8">
-          Join Dunkuloans
-        </h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900">Join Dunkuloans</h2>
+          <p className="text-sm text-gray-500 mt-2">Create your account to get started</p>
+        </div>
         
-        <form onSubmit={handleRegister} className="flex flex-col gap-6">
+        <form onSubmit={handleRegister} className="flex flex-col gap-5">
           {/* Full Name Input */}
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Full Name</label>
+          <div className="flex flex-col">
+            <label className="text-sm font-semibold text-gray-700 mb-1">Full Name</label>
             <input
               type="text"
               required
               placeholder="John Doe"
-              className="w-full p-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-slate-50"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
             />
           </div>
 
           {/* Email Input */}
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Email Address</label>
+          <div className="flex flex-col">
+            <label className="text-sm font-semibold text-gray-700 mb-1">Email Address</label>
             <input
               type="email"
               required
               placeholder="you@example.com"
-              className="w-full p-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-slate-50"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
           {/* Password Input */}
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Password</label>
+          <div className="flex flex-col">
+            <label className="text-sm font-semibold text-gray-700 mb-1">Password</label>
             <input
               type="password"
               required
               placeholder="••••••••"
-              className="w-full p-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-slate-50"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
-          {/* THE REGISTER BUTTON - High Visibility */}
+          {/* Register Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-4 rounded-lg shadow-md transition-colors duration-200 mt-2"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 mt-2"
           >
             {loading ? "Creating Account..." : "Create Account"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-slate-600">
+        <p className="mt-8 text-center text-sm text-gray-600">
           Already have an account?{" "}
-          <Link to="/login" className="font-bold text-blue-600 hover:underline">
+          <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-500 hover:underline">
             Log in here
           </Link>
         </p>
