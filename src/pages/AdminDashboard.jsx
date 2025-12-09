@@ -9,36 +9,24 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false); // Track admin status locally
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     
-    // Check Role First
     const verifyAdmin = async () => {
-      console.log("Checking admin status for:", user.email);
-      
       const { data, error } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", user.id)
         .single();
 
-      if (error) {
-        console.error("Profile check error:", error);
-        alert("Error checking profile permissions.");
-        navigate("/dashboard");
-        return;
-      }
-
-      console.log("User Role found:", data?.role);
-
       if (data?.role !== "admin") {
-        alert(`Access Denied. Your role is '${data?.role}'. You need 'admin'.`);
+        alert(`Access Denied.`);
         navigate("/dashboard");
       } else {
-        setIsAdmin(true); // Authorized!
-        fetchLoans(); // Only fetch loans if admin
+        setIsAdmin(true);
+        fetchLoans();
       }
     };
 
@@ -76,90 +64,127 @@ export default function AdminDashboard() {
     else fetchLoans();
   };
 
-  // Prevent rendering if not confirmed admin yet
-  if (!isAdmin) return <div className="p-10 text-center">Verifying Admin Privileges...</div>;
+  if (!isAdmin) return <div className="min-h-screen bg-gray-100 flex items-center justify-center text-gray-800">Verifying...</div>;
 
   const pendingLoans = loans.filter(l => l.status === 'pending');
   const activeLoans = loans.filter(l => l.status === 'active');
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans">
+    <div className="flex min-h-screen bg-gray-100 text-gray-900 font-sans">
+      {/* Sidebar - Fixed Left */}
       <Sidebar />
-      <div className="flex-1 p-8">
+
+      {/* Main Content - Pushed Right */}
+      <div className="flex-1 p-8 ml-0 md:ml-64">
         
-        <header className="flex justify-between items-center mb-8">
+        {/* Header Section */}
+        <header className="flex justify-between items-center mb-10 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900">Admin Control</h1>
-            <p className="text-slate-500">Manage approvals and loan lifecycle</p>
+            <h1 className="text-3xl font-extrabold text-gray-900">Admin Control</h1>
+            <p className="text-gray-500 mt-1">Overview of all loan applications</p>
           </div>
-          <div className="bg-red-100 px-4 py-2 rounded-lg border border-red-200">
-            <span className="text-sm font-bold text-red-700">ADMIN MODE</span>
+          <div className="bg-slate-900 text-white px-4 py-2 rounded-lg shadow-md border border-slate-700">
+            <span className="text-xs font-bold tracking-widest uppercase">Admin Mode</span>
           </div>
         </header>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="text-xs font-bold text-slate-400 uppercase">Pending Approvals</h3>
-            <p className="text-3xl font-black text-orange-500 mt-2">{pendingLoans.length}</p>
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pending Requests</h3>
+            <p className="text-4xl font-black text-orange-500 mt-2">{pendingLoans.length}</p>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="text-xs font-bold text-slate-400 uppercase">Active Portfolio</h3>
-            <p className="text-3xl font-black text-blue-600 mt-2">{activeLoans.length}</p>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Active Portfolio</h3>
+            <p className="text-4xl font-black text-blue-600 mt-2">{activeLoans.length}</p>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="text-xs font-bold text-slate-400 uppercase">Total Applications</h3>
-            <p className="text-3xl font-black text-slate-800 mt-2">{loans.length}</p>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Loans</h3>
+            <p className="text-4xl font-black text-gray-800 mt-2">{loans.length}</p>
           </div>
         </div>
 
-        {/* Table */}
-        <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-            <h2 className="font-bold text-slate-700">Loan Applications</h2>
+        {/* Loan Management Table */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+          <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <h2 className="font-bold text-lg text-gray-800">Loan Applications</h2>
+            <span className="text-sm text-gray-500">{loans.length} records found</span>
           </div>
 
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-100 text-slate-500 text-xs uppercase">
-              <tr>
-                <th className="px-6 py-3 font-bold">Client</th>
-                <th className="px-6 py-3 font-bold">Amount</th>
-                <th className="px-6 py-3 font-bold">Status</th>
-                <th className="px-6 py-3 font-bold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loans.map((loan) => (
-                <tr key={loan.id} className="hover:bg-slate-50 transition">
-                  <td className="px-6 py-4">
-                    <div className="font-bold text-slate-900">{loan.profiles?.full_name || "Unknown"}</div>
-                    <div className="text-xs text-slate-500">{loan.profiles?.email}</div>
-                  </td>
-                  <td className="px-6 py-4 font-bold text-slate-700">K {loan.amount.toLocaleString()}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-                      loan.status === 'pending' ? 'bg-orange-100 text-orange-700' :
-                      loan.status === 'active' ? 'bg-blue-100 text-blue-700' :
-                      'bg-green-100 text-green-700'
-                    }`}>
-                      {loan.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right space-x-2">
-                    {loan.status === 'pending' && (
-                      <>
-                        <button onClick={() => handleAction(loan.id, 'active')} className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-md text-xs font-bold">Approve</button>
-                        <button onClick={() => handleAction(loan.id, 'rejected')} className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-xs font-bold">Reject</button>
-                      </>
-                    )}
-                    {loan.status === 'active' && (
-                      <button onClick={() => handleAction(loan.id, 'settled')} className="px-3 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded-md text-xs font-bold">Mark Paid</button>
-                    )}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-gray-100 text-gray-500 text-xs uppercase font-bold tracking-wider">
+                <tr>
+                  <th className="px-8 py-4">Client Name</th>
+                  <th className="px-8 py-4">Amount</th>
+                  <th className="px-8 py-4">Status</th>
+                  <th className="px-8 py-4 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {loans.map((loan) => (
+                  <tr key={loan.id} className="hover:bg-gray-50 transition duration-150 ease-in-out">
+                    
+                    {/* Client Info */}
+                    <td className="px-8 py-5">
+                      <div className="font-bold text-gray-900 text-base">{loan.profiles?.full_name || "Unknown User"}</div>
+                      <div className="text-sm text-gray-500">{loan.profiles?.email}</div>
+                    </td>
+
+                    {/* Amount */}
+                    <td className="px-8 py-5">
+                      <span className="font-bold text-gray-700 text-lg">K {loan.amount.toLocaleString()}</span>
+                    </td>
+
+                    {/* Status Badge */}
+                    <td className="px-8 py-5">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${
+                        loan.status === 'pending' ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                        loan.status === 'active' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                        loan.status === 'rejected' ? 'bg-red-50 text-red-600 border-red-200' :
+                        'bg-green-50 text-green-600 border-green-200'
+                      }`}>
+                        {loan.status}
+                      </span>
+                    </td>
+
+                    {/* Action Buttons */}
+                    <td className="px-8 py-5 text-right">
+                      <div className="flex justify-end gap-2">
+                        {loan.status === 'pending' && (
+                          <>
+                            <button 
+                              onClick={() => handleAction(loan.id, 'active')}
+                              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold shadow-md transition transform hover:scale-105"
+                            >
+                              Approve
+                            </button>
+                            <button 
+                              onClick={() => handleAction(loan.id, 'rejected')}
+                              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-bold shadow-md transition transform hover:scale-105"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                        {loan.status === 'active' && (
+                          <button 
+                            onClick={() => handleAction(loan.id, 'settled')}
+                            className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm font-bold shadow-md transition transform hover:scale-105"
+                          >
+                            Mark Paid
+                          </button>
+                        )}
+                        {loan.status !== 'pending' && loan.status !== 'active' && (
+                          <span className="text-gray-400 text-sm font-medium italic">Completed</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
