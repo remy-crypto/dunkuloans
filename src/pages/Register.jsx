@@ -14,45 +14,23 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // 1. Sign Up the User (Authentication)
-      // We include metadata here so Supabase Auth knows the name too
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // Original Logic: We send the data to Auth, and expect the DB Trigger to handle the rest
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: fullName,
+            full_name: fullName, 
           },
         },
       });
 
-      if (authError) throw authError;
-
-      // 2. Create the Profile (Database) - MANUAL INSERT
-      // This runs from the client side to avoid the 500 Server Error trigger
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: authData.user.id,
-              email: email,
-              full_name: fullName,
-              role: 'borrower' // Default role
-            }
-          ]);
-
-        if (profileError) {
-          console.error("Profile creation failed:", profileError);
-          // We continue anyway because the Auth account was created successfully.
-        }
-      }
+      if (error) throw error;
 
       alert("Registration Successful! Please Log in.");
       navigate("/login");
 
     } catch (error) {
-      console.error("Registration Error:", error);
       alert(error.message);
     } finally {
       setLoading(false);
@@ -74,7 +52,7 @@ export default function Register() {
               type="text"
               required
               placeholder="John Doe"
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-gray-50"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
             />
@@ -86,7 +64,7 @@ export default function Register() {
               type="email"
               required
               placeholder="you@example.com"
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-gray-50"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -98,7 +76,7 @@ export default function Register() {
               type="password"
               required
               placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-gray-50"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -107,7 +85,7 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-lg shadow-md transition-all mt-2 disabled:opacity-50"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 mt-2 disabled:opacity-50"
           >
             {loading ? "Creating Account..." : "Create Account"}
           </button>
@@ -115,7 +93,7 @@ export default function Register() {
 
         <p className="mt-8 text-center text-sm text-gray-600">
           Already have an account?{" "}
-          <Link to="/login" className="font-semibold text-blue-600 hover:underline">
+          <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-500 hover:underline">
             Log in here
           </Link>
         </p>
