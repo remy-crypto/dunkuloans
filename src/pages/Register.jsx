@@ -14,7 +14,7 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // Original Logic: We send the data to Auth, and expect the DB Trigger to handle the rest
+      // Original Logic: relying on Supabase DB Trigger
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -45,14 +45,16 @@ export default function Register() {
           <p className="text-sm text-gray-500 mt-2">Create your account to get started</p>
         </div>
         
-        <form onSubmit={handleRegister} className="flex flex-col gap-5">
+        {/* Added 'flex-col' and 'gap-4' to ensure vertical stacking */}
+        <form onSubmit={handleRegister} className="flex flex-col gap-4">
+          
           <div className="flex flex-col">
             <label className="text-sm font-semibold text-gray-700 mb-1">Full Name</label>
             <input
               type="text"
               required
               placeholder="John Doe"
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-gray-50"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
             />
@@ -64,7 +66,7 @@ export default function Register() {
               type="email"
               required
               placeholder="you@example.com"
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-gray-50"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -76,7 +78,7 @@ export default function Register() {
               type="password"
               required
               placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-gray-50"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -85,7 +87,7 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 mt-2 disabled:opacity-50"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-lg shadow-md transition-all mt-4 disabled:opacity-50"
           >
             {loading ? "Creating Account..." : "Create Account"}
           </button>
