@@ -1,42 +1,59 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+
+// Page Imports
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ApplyLoan from "./pages/ApplyLoan";
 
-// 1. IMPROVED PROTECTED ROUTE
-// This prevents kicking you out while the app is still checking if you are logged in
+// ==========================================
+// PROTECTED ROUTE WRAPPER
+// ==========================================
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   
-  // Show a loading screen while Supabase checks the session
+  // 1. Show Loading Screen (Dark Theme) while Supabase checks session
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
-        Loading...
+      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-100">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm font-medium text-gray-400">Loading Dunkuloans...</p>
+        </div>
       </div>
     );
   }
 
-  // If check is done and no user, THEN redirect
+  // 2. If no user found after loading, redirect to Login
   if (!user) return <Navigate to="/login" replace />;
   
+  // 3. If authenticated, render the page
   return children;
 }
 
+// ==========================================
+// MAIN APP COMPONENT
+// ==========================================
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public Routes */}
+          {/* --- PUBLIC ROUTES --- */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* Protected Routes */}
-          {/* We map ALL sidebar links to the Dashboard for now, or you can create specific pages later */}
+          {/* --- PROTECTED ROUTES --- */}
+          
+          {/* 1. Main Dashboard (Handles Admin & Borrower Views) */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
+          {/* 2. Specific Loan Application Page (Borrowers) */}
+          <Route path="/apply" element={<ProtectedRoute><ApplyLoan /></ProtectedRoute>} />
+
+          {/* 3. Admin Sub-Pages (These load Dashboard, which then handles the specific view internally) */}
           <Route path="/clients" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/investors" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/kyc" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -44,11 +61,13 @@ export default function App() {
           <Route path="/underwriting" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/support" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/loans" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
 
-          {/* Default Redirect */}
+          {/* --- REDIRECTS --- */}
+          {/* Default to Dashboard */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           
-          {/* Catch-all: Redirect to dashboard if logged in, otherwise login */}
+          {/* Catch-all for unknown routes */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
