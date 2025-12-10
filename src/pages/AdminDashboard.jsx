@@ -8,12 +8,8 @@ import { supabase } from "../lib/SupabaseClient";
 // ==========================================
 const ExecutiveOverview = () => {
   const [stats, setStats] = useState({
-    activeAmount: 0,
-    totalCount: 0,
-    activeCount: 0,
-    pendingCount: 0,
-    settledCount: 0,
-    defaultCount: 0
+    activeAmount: 0, totalCount: 0, activeCount: 0,
+    pendingCount: 0, settledCount: 0, defaultCount: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -150,7 +146,7 @@ const ClientsView = () => {
 };
 
 // ==========================================
-// 3. INVESTORS VIEW (NEWLY BUILT)
+// 3. INVESTORS VIEW
 // ==========================================
 const InvestorsView = () => {
   const [investors, setInvestors] = useState([]);
@@ -159,11 +155,7 @@ const InvestorsView = () => {
 
   const fetchInvestors = async () => {
     setLoading(true);
-    // Join investors with profiles to get names
-    const { data, error } = await supabase
-      .from('investors')
-      .select('*, profiles(full_name, email)');
-    
+    const { data, error } = await supabase.from('investors').select('*, profiles(full_name, email)');
     if (!error && data) {
       setInvestors(data);
       const totalInv = data.reduce((acc, curr) => acc + Number(curr.total_invested), 0);
@@ -173,26 +165,15 @@ const InvestorsView = () => {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchInvestors();
-  }, []);
+  useEffect(() => { fetchInvestors(); }, []);
 
   const handleAddFunds = async (investorId, currentAmount) => {
     const amount = prompt("Enter amount to add (ZMW):");
     if (!amount || isNaN(amount)) return;
-
     const newTotal = Number(currentAmount) + Number(amount);
-
-    const { error } = await supabase
-      .from('investors')
-      .update({ total_invested: newTotal })
-      .eq('id', investorId);
-
-    if (error) alert("Error adding funds: " + error.message);
-    else {
-      alert("Funds added successfully!");
-      fetchInvestors();
-    }
+    const { error } = await supabase.from('investors').update({ total_invested: newTotal }).eq('id', investorId);
+    if (error) alert("Error: " + error.message);
+    else { alert("Funds added!"); fetchInvestors(); }
   };
 
   return (
@@ -201,8 +182,6 @@ const InvestorsView = () => {
         <h1 className="text-2xl font-bold text-white">Investor Management</h1>
         <p className="text-gray-400 mt-1">Track liquidity providers and capital allocation.</p>
       </div>
-
-      {/* Financial Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-indigo-900/20 p-6 rounded-xl border border-indigo-500/30">
           <p className="text-sm font-medium text-indigo-300">Total Capital Raised</p>
@@ -213,15 +192,7 @@ const InvestorsView = () => {
           <h2 className="text-3xl font-bold text-white mt-2">K {totals.returns.toLocaleString()}</h2>
         </div>
       </div>
-
-      {/* Investors Table */}
       <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
-          <h3 className="font-semibold text-white">Active Investors</h3>
-          <button className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded transition">
-            Invite Investor
-          </button>
-        </div>
         <table className="w-full text-left text-sm text-gray-400">
           <thead className="bg-gray-900 text-gray-200 uppercase font-medium">
             <tr>
@@ -232,30 +203,19 @@ const InvestorsView = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700">
-            {loading ? (
-              <tr><td colSpan="4" className="px-6 py-8 text-center">Loading data...</td></tr>
-            ) : investors.length === 0 ? (
-              <tr><td colSpan="4" className="px-6 py-8 text-center text-gray-500">No investors found.</td></tr>
-            ) : (
-              investors.map((inv) => (
-                <tr key={inv.id} className="hover:bg-gray-700/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-white">{inv.profiles?.full_name || "Unknown"}</div>
-                    <div className="text-xs text-gray-500">{inv.profiles?.email}</div>
-                  </td>
-                  <td className="px-6 py-4 font-bold text-white">K {inv.total_invested.toLocaleString()}</td>
-                  <td className="px-6 py-4 text-green-400">+ K {inv.total_returns.toLocaleString()}</td>
-                  <td className="px-6 py-4 text-right">
-                    <button 
-                      onClick={() => handleAddFunds(inv.id, inv.total_invested)}
-                      className="text-xs border border-indigo-500 text-indigo-400 hover:bg-indigo-500 hover:text-white px-3 py-1 rounded transition"
-                    >
-                      Add Funds
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
+            {investors.map((inv) => (
+              <tr key={inv.id} className="hover:bg-gray-700/50 transition-colors">
+                <td className="px-6 py-4">
+                  <div className="font-medium text-white">{inv.profiles?.full_name || "Unknown"}</div>
+                  <div className="text-xs text-gray-500">{inv.profiles?.email}</div>
+                </td>
+                <td className="px-6 py-4 font-bold text-white">K {inv.total_invested.toLocaleString()}</td>
+                <td className="px-6 py-4 text-green-400">+ K {inv.total_returns.toLocaleString()}</td>
+                <td className="px-6 py-4 text-right">
+                  <button onClick={() => handleAddFunds(inv.id, inv.total_invested)} className="text-xs border border-indigo-500 text-indigo-400 hover:bg-indigo-500 hover:text-white px-3 py-1 rounded transition">Add Funds</button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -264,7 +224,104 @@ const InvestorsView = () => {
 };
 
 // ==========================================
-// 4. PLACEHOLDER VIEW 
+// 4. UNDERWRITING VIEW (NEWLY BUILT)
+// ==========================================
+const UnderwritingView = () => {
+  const [pendingLoans, setPendingLoans] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchPending = async () => {
+    setLoading(true);
+    // Fetch pending loans + borrower details
+    const { data, error } = await supabase
+      .from('loans')
+      .select('*, profiles(full_name, email, phone)')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+    
+    if (!error) setPendingLoans(data);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchPending(); }, []);
+
+  const processLoan = async (id, decision) => {
+    if (!confirm(`Are you sure you want to ${decision.toUpperCase()} this loan?`)) return;
+    
+    const { error } = await supabase
+      .from('loans')
+      .update({ status: decision === 'approve' ? 'active' : 'rejected' })
+      .eq('id', id);
+
+    if (error) alert(error.message);
+    else fetchPending();
+  };
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Underwriting Desk</h1>
+        <p className="text-gray-400 mt-1">Review pending applications and assess risk.</p>
+      </div>
+
+      {loading ? <p className="text-gray-500">Loading queue...</p> : pendingLoans.length === 0 ? (
+        <div className="bg-gray-800 p-8 rounded-xl border border-gray-700 text-center">
+          <p className="text-gray-400">No pending loan applications.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6">
+          {pendingLoans.map(loan => (
+            <div key={loan.id} className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-white">{loan.profiles?.full_name}</h3>
+                  <p className="text-sm text-gray-400">{loan.profiles?.email}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500 uppercase">Requested Amount</p>
+                  <p className="text-2xl font-bold text-indigo-400">K {loan.amount.toLocaleString()}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 mb-6 text-sm">
+                <div className="bg-gray-900 p-3 rounded border border-gray-800">
+                  <p className="text-gray-500">Repayment Total</p>
+                  <p className="text-white font-medium">K {(loan.amount * 1.4).toLocaleString()}</p>
+                </div>
+                <div className="bg-gray-900 p-3 rounded border border-gray-800">
+                  <p className="text-gray-500">Interest Rate</p>
+                  <p className="text-white font-medium">40% Flat</p>
+                </div>
+                <div className="bg-gray-900 p-3 rounded border border-gray-800">
+                  <p className="text-gray-500">Risk Score</p>
+                  <p className="text-green-400 font-medium">Low (Simulated)</p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-700">
+                <button 
+                  onClick={() => processLoan(loan.id, 'reject')}
+                  className="px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 rounded transition"
+                >
+                  Reject Application
+                </button>
+                <button 
+                  onClick={() => processLoan(loan.id, 'approve')}
+                  className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded transition shadow-lg shadow-green-900/20"
+                >
+                  Approve & Disburse
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ==========================================
+// 5. PLACEHOLDER VIEW 
 // ==========================================
 const ComingSoonView = ({ title }) => (
   <div className="flex flex-col items-center justify-center h-[50vh] text-center">
@@ -277,7 +334,7 @@ const ComingSoonView = ({ title }) => (
 );
 
 // ==========================================
-// 5. MAIN ADMIN DASHBOARD (The Router)
+// 6. MAIN ADMIN DASHBOARD (The Router)
 // ==========================================
 const AdminDashboard = () => {
   const location = useLocation();
@@ -287,10 +344,10 @@ const AdminDashboard = () => {
     switch (path) {
       case '/dashboard': return <ExecutiveOverview />;
       case '/clients': return <ClientsView />;
-      case '/investors': return <InvestorsView />; // <--- NOW ACTIVE
+      case '/investors': return <InvestorsView />;
       case '/kyc': return <ComingSoonView title="KYC Verification Queue" />;
       case '/collateral': return <ComingSoonView title="Collateral Review" />;
-      case '/underwriting': return <ComingSoonView title="Underwriting Desk" />;
+      case '/underwriting': return <UnderwritingView />; // <--- NOW ACTIVE
       case '/support': return <ComingSoonView title="Support Tickets" />;
       default: return <ExecutiveOverview />;
     }
