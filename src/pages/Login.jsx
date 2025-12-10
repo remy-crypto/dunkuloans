@@ -1,53 +1,59 @@
-// src/pages/Login.jsx
-import { useState } from "react";
+import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function Login() {
+  // FIX: Use 'signIn' instead of 'login'
+  const { signIn } = useAuth(); 
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login } = useAuth();
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      await login(email, password);
+      // FIX: Call 'signIn'
+      await signIn(email, password);
       navigate("/dashboard");
-    } catch (error) {
-      alert(error.message);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-box">
-        <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Sign In</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <input 
-              className="form-input" 
-              type="email" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-              placeholder="Email address" 
-              required 
-            />
-          </div>
-          <div className="form-group">
-            <input 
-              className="form-input" 
-              type="password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              placeholder="Password" 
-              required 
-            />
-          </div>
-          <button type="submit" className="btn-primary">Login</button>
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-100">
+      <div className="w-full max-w-md bg-gray-800 p-8 rounded-lg shadow border border-gray-700">
+        <h2 className="text-2xl font-semibold mb-4 text-white">Sign In</h2>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <input 
+            className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white focus:border-indigo-500 outline-none" 
+            placeholder="Email" 
+            value={email} 
+            onChange={(e) => setEmail(e.target.value)} 
+            required 
+          />
+          <input 
+            className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white focus:border-indigo-500 outline-none" 
+            placeholder="Password" 
+            type="password" 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
+            required 
+          />
+          <button 
+            className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition-colors font-medium" 
+            type="submit" 
+            disabled={loading}
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
         </form>
-        <p className="auth-link">
-          Don't have an account? <Link to="/register">Register</Link>
+        <p className="text-sm mt-4 text-gray-400">
+          Don't have an account? <Link to="/register" className="text-indigo-400 hover:text-indigo-300">Register</Link>
         </p>
       </div>
     </div>

@@ -1,103 +1,60 @@
-import { useState } from "react";
-import { supabase } from "../lib/SupabaseClient";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate, Link } from "react-router-dom";
 
 export default function Register() {
+  // FIX: Use 'signUp' instead of 'register'
+  const { signUp } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
-  const handleRegister = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      // Original Logic: relying on Supabase DB Trigger
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName, 
-          },
-        },
-      });
-
-      if (error) throw error;
-
-      alert("Registration Successful! Please Log in.");
-      navigate("/login");
-
-    } catch (error) {
-      alert(error.message);
+      // FIX: Call 'signUp'
+      await signUp(email, password);
+      // Auto redirect to dashboard after signup
+      navigate("/dashboard");
+    } catch (err) {
+      alert(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Join Dunkuloans</h2>
-          <p className="text-sm text-gray-500 mt-2">Create your account to get started</p>
-        </div>
-        
-        {/* Added 'flex-col' and 'gap-4' to ensure vertical stacking */}
-        <form onSubmit={handleRegister} className="flex flex-col gap-4">
-          
-          <div className="flex flex-col">
-            <label className="text-sm font-semibold text-gray-700 mb-1">Full Name</label>
-            <input
-              type="text"
-              required
-              placeholder="John Doe"
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-            />
-          </div>
-
-          <div className="flex flex-col">
-            <label className="text-sm font-semibold text-gray-700 mb-1">Email Address</label>
-            <input
-              type="email"
-              required
-              placeholder="you@example.com"
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          <div className="flex flex-col">
-            <label className="text-sm font-semibold text-gray-700 mb-1">Password</label>
-            <input
-              type="password"
-              required
-              placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-
-          <button
-            type="submit"
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-100">
+      <div className="w-full max-w-md bg-gray-800 p-8 rounded-lg shadow border border-gray-700">
+        <h2 className="text-2xl font-semibold mb-4 text-white">Create Account</h2>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <input 
+            className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white focus:border-indigo-500 outline-none" 
+            placeholder="Email" 
+            value={email} 
+            onChange={(e) => setEmail(e.target.value)} 
+            required 
+          />
+          <input 
+            className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white focus:border-indigo-500 outline-none" 
+            placeholder="Password" 
+            type="password" 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)} 
+            required 
+          />
+          <button 
+            className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition-colors font-medium" 
+            type="submit" 
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-lg shadow-md transition-all mt-4 disabled:opacity-50"
           >
-            {loading ? "Creating Account..." : "Create Account"}
+            {loading ? "Registering..." : "Register"}
           </button>
         </form>
-
-        <p className="mt-8 text-center text-sm text-gray-600">
-          Already have an account?{" "}
-          <Link to="/login" className="font-semibold text-blue-600 hover:text-blue-500 hover:underline">
-            Log in here
-          </Link>
+        <p className="text-sm mt-4 text-gray-400">
+          Already have an account? <Link to="/login" className="text-indigo-400 hover:text-indigo-300">Login</Link>
         </p>
       </div>
     </div>
