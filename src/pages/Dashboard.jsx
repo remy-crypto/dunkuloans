@@ -1,86 +1,213 @@
-// src/pages/Dashboard.jsx
 import React, { useEffect, useState } from "react";
-import { supabase } from "../lib/SupabaseClient";
+import { useLocation } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import { useAuth } from "../context/AuthContext";
+import { supabase } from "../lib/SupabaseClient";
 
-export default function Dashboard() {
-  const { user } = useAuth();
-  const [loans, setLoans] = useState([]);
+// ==========================================
+// 1. EXECUTIVE OVERVIEW (The Charts & Stats)
+// ==========================================
+const ExecutiveOverview = () => {
+  const [stats, setStats] = useState({
+    activeAmount: 0,
+    totalCount: 0,
+    activeCount: 0,
+    pendingCount: 0,
+    settledCount: 0,
+    defaultCount: 0
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
-    const fetchLoans = async () => {
+    const fetchData = async () => {
+      setLoading(true);
       const { data, error } = await supabase.from("loans").select("*");
-      if (!error) setLoans(data);
+      if (!error && data) {
+        const active = data.filter(l => l.status === 'active');
+        const pending = data.filter(l => l.status === 'pending');
+        const settled = data.filter(l => l.status === 'settled');
+        const defaulted = data.filter(l => l.status === 'default');
+        
+        setStats({
+          activeAmount: active.reduce((sum, item) => sum + Number(item.amount), 0),
+          totalCount: data.length,
+          activeCount: active.length,
+          pendingCount: pending.length,
+          settledCount: settled.length,
+          defaultCount: defaulted.length
+        });
+      }
+      setLoading(false);
     };
-    fetchLoans();
-  }, [user]);
+    fetchData();
+  }, []);
 
-  if (!user) return <div className="auth-container">Please login...</div>;
+  const getDonutStrokeDash = (count, total) => {
+    if (total === 0) return "0, 100";
+    return `${(count / total) * 100}, 100`;
+  };
 
-  // Calculate stats
-  const activeLoans = loans.filter(l => l.status === 'active');
-  const settledLoans = loans.filter(l => l.status === 'settled');
-  const totalAmount = activeLoans.reduce((sum, l) => sum + (l.amount || 0), 0);
+  if (loading) return <div className="p-8 text-gray-400 animate-pulse">Loading Overview...</div>;
 
   return (
-    <div className="app-container">
-      <Sidebar />
-      <div className="main-content">
-        <div className="dashboard-header">
-          <h1>Welcome back, {user.email.split('@')[0]}</h1>
-        </div>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Executive Overview</h1>
+        <p className="text-gray-400 mt-1">Portfolio performance, risk metrics, and operational stats.</p>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="stats-grid">
-          <div className="card">
-            <h3>Active Loan Amount</h3>
-            <p className="amount">K {totalAmount.toLocaleString()}</p>
-          </div>
-          <div className="card">
-            <h3>Active Loans</h3>
-            <p className="amount">{activeLoans.length}</p>
-          </div>
-          <div className="card">
-            <h3>Settled Loans</h3>
-            <p className="amount">{settledLoans.length}</p>
+      {/* Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 relative overflow-hidden">
+          <p className="text-sm font-medium text-gray-400">Upcoming Repayments</p>
+          <h2 className="text-3xl font-bold text-white mt-2">K {stats.activeAmount.toLocaleString()}</h2>
+          <div className="absolute top-6 right-6 p-2 bg-green-900/30 rounded-lg text-green-400">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
           </div>
         </div>
+        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
+          <p className="text-sm font-medium text-gray-400">Portfolio Risk (LTV)</p>
+          <h2 className="text-3xl font-bold text-white mt-2">40.0%</h2>
+          <p className="text-xs text-green-400 mt-2">Low Risk Target: &lt;60%</p>
+        </div>
+      </div>
 
-        {/* Loan Table */}
-        <h2>Loan History</h2>
-        <div className="table-container">
-          {loans.length === 0 ? (
-            <p style={{padding: '1rem'}}>No loans found.</p>
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loans.map((loan) => (
-                  <tr key={loan.id}>
-                    <td>#{loan.id.slice(0, 8)}...</td>
-                    <td>K {loan.amount.toLocaleString()}</td>
-                    <td>
-                      <span className={`status-badge status-${loan.status.toLowerCase()}`}>
-                        {loan.status}
-                      </span>
-                    </td>
-                    <td>{new Date(loan.created_at).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+      {/* Charts Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Revenue Chart */}
+        <div className="lg:col-span-2 bg-gray-800 p-6 rounded-xl border border-gray-700">
+          <h3 className="text-lg font-bold text-white mb-6">Revenue & Expenses</h3>
+          <div className="h-64 flex items-end justify-between gap-2 px-2 relative border-b border-gray-700 pb-6">
+             {/* Fake Bars for visual simulation */}
+             {[40, 60, 45, 70, 85, 90].map((h, i) => (
+                <div key={i} className="w-full bg-indigo-600/20 hover:bg-indigo-600/40 rounded-t transition-all" style={{ height: `${h}%` }}></div>
+             ))}
+          </div>
+        </div>
+
+        {/* Donut Chart */}
+        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 flex flex-col items-center justify-center">
+          <h3 className="text-lg font-bold text-white mb-6 w-full text-left">Distribution</h3>
+          <div className="relative w-48 h-48">
+            <svg viewBox="0 0 36 36" className="w-full h-full rotate-[-90deg]">
+              <path className="text-gray-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3.8" />
+              <path className="text-sky-500" strokeDasharray={getDonutStrokeDash(stats.activeCount, stats.totalCount)} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3.8" />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-bold text-white">{stats.totalCount}</span>
+              <span className="text-xs text-gray-400">Total</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
-}
+};
+
+// ==========================================
+// 2. CLIENTS VIEW (Real Data from Profiles)
+// ==========================================
+const ClientsView = () => {
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      // Fetch users who are borrowers
+      const { data, error } = await supabase.from('profiles').select('*').eq('role', 'borrower');
+      if (!error) setClients(data);
+      setLoading(false);
+    };
+    fetchClients();
+  }, []);
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-white mb-6">Client Management</h1>
+      <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+        <table className="w-full text-left text-sm text-gray-400">
+          <thead className="bg-gray-900 text-gray-200 uppercase font-medium">
+            <tr>
+              <th className="px-6 py-4">Name</th>
+              <th className="px-6 py-4">Email</th>
+              <th className="px-6 py-4">Joined</th>
+              <th className="px-6 py-4">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-700">
+            {loading ? (
+              <tr><td colSpan="4" className="px-6 py-4 text-center">Loading clients...</td></tr>
+            ) : clients.length === 0 ? (
+              <tr><td colSpan="4" className="px-6 py-4 text-center">No clients found.</td></tr>
+            ) : (
+              clients.map(client => (
+                <tr key={client.id} className="hover:bg-gray-700/50 transition-colors">
+                  <td className="px-6 py-4 font-medium text-white">{client.full_name || "Unknown"}</td>
+                  <td className="px-6 py-4">{client.email}</td>
+                  <td className="px-6 py-4">{new Date(client.created_at).toLocaleDateString()}</td>
+                  <td className="px-6 py-4">
+                    <span className="px-2 py-1 bg-green-900/50 text-green-400 rounded text-xs">Active</span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// ==========================================
+// 3. PLACEHOLDER VIEW (For unfinished pages)
+// ==========================================
+const ComingSoonView = ({ title }) => (
+  <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+    <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4 text-indigo-500">
+      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+    </div>
+    <h2 className="text-2xl font-bold text-white">{title}</h2>
+    <p className="text-gray-400 mt-2 max-w-md">This module is currently under development. Check back later for updates.</p>
+  </div>
+);
+
+// ==========================================
+// 4. MAIN ADMIN DASHBOARD (The Router)
+// ==========================================
+const AdminDashboard = () => {
+  const location = useLocation();
+  const path = location.pathname;
+
+  // Render the correct content based on the URL
+  const renderContent = () => {
+    switch (path) {
+      case '/dashboard':
+        return <ExecutiveOverview />;
+      case '/clients':
+        return <ClientsView />;
+      case '/investors':
+        return <ComingSoonView title="Investor Management" />;
+      case '/kyc':
+        return <ComingSoonView title="KYC Verification Queue" />;
+      case '/collateral':
+        return <ComingSoonView title="Collateral Review" />;
+      case '/underwriting':
+        return <ComingSoonView title="Underwriting Desk" />;
+      case '/support':
+        return <ComingSoonView title="Support Tickets" />;
+      default:
+        // Default to overview if route matches partially or unknown
+        return <ExecutiveOverview />;
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen bg-gray-900 text-gray-100">
+      <Sidebar />
+      <main className="flex-1 p-8 overflow-y-auto">
+        {renderContent()}
+      </main>
+    </div>
+  );
+};
+
+export default AdminDashboard;
