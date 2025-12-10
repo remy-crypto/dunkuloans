@@ -1,1 +1,1 @@
-export default function P() { return <div>Admin Staff</div> }
+export default function P() { return <div className='p-10'>Admin Staff</div> }

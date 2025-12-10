@@ -1,1 +1,1 @@
-export default function P() { return <div>Underwriting</div> }
+export default function P() { return <div className='p-10'>Underwriting</div> }
