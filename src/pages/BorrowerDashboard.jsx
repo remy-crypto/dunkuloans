@@ -1,280 +1,254 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
-import { supabase } from "../lib/SupabaseClient"; // Corrected Import with Uppercase S
-
-// Define status constants locally to ensure it works immediately
-const LoanStatus = {
-  ACTIVE: 'active',
-  SETTLED: 'settled',
-  PAID: 'paid',
-  PENDING: 'pending'
-};
+import { supabase } from "../lib/SupabaseClient";
 
 const BorrowerDashboard = () => {
   const [user, setUser] = useState(null);
   const [loans, setLoans] = useState([]);
+  const [collateral, setCollateral] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState({
-    activeCount: 0,
-    settledCount: 0,
-    totalOutstanding: 0,
-  });
+  const [stats, setStats] = useState({ activeAmount: 0, repayment: 0, collateralCount: 0 });
 
-  // Load user and loans
   useEffect(() => {
-    let mounted = true;
+    fetchDashboardData();
+  }, []);
 
-    const init = async () => {
-      setLoading(true);
-      try {
-        // Get User
-        const { data: authData } = await supabase.auth.getUser();
-        const currentUser = authData?.user ?? null;
-        
-        if (!currentUser) {
-          setUser(null);
-          setLoans([]);
-          setLoading(false);
-          return;
-        }
-
-        if (mounted) setUser(currentUser);
-
-        const borrowerId = currentUser.id;
-
-        // Fetch Loans
-        const { data: loanData, error } = await supabase
-          .from("loans")
-          .select("*, profiles(full_name, email)")
-          .eq("borrower_id", borrowerId)
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-
-        // Normalize Data
-        const normalized = (loanData || []).map((l) => ({
-          ...l,
-          borrower_name: l.profiles?.full_name ?? currentUser.email,
-          borrower_email: l.profiles?.email ?? currentUser.email,
-          balance: l.balance ?? l.amount, // Ensure balance exists
-        }));
-
-        if (!mounted) return;
-        setLoans(normalized);
-        computeSummary(normalized);
-
-      } catch (err) {
-        console.error("BorrowerDashboard init error:", err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    init();
-
-    // Subscribe to Realtime Changes
-    const channel = supabase
-      .channel("public:loans:borrower")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "loans" },
-        (payload) => {
-          // Simple refresh on change
-          if (user?.id) {
-             init();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      mounted = false;
-      supabase.removeChannel(channel);
-    };
-  }, []); // Run once on mount
-
-  function computeSummary(list) {
-    const active = list.filter((l) => l.status === LoanStatus.ACTIVE);
-    const settled = list.filter((l) => l.status === LoanStatus.SETTLED || l.status === LoanStatus.PAID);
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
     
-    // Calculate total outstanding balance
-    const totalOutstanding = active.reduce((sum, item) => {
-      return sum + Number(item.balance || item.amount || 0);
-    }, 0);
-
-    setSummary({
-      activeCount: active.length,
-      settledCount: settled.length,
-      totalOutstanding,
-    });
-  }
-
-  const handleRecordPayment = async (loan) => {
-    const raw = prompt("Enter payment amount (K):", "0");
-    if (!raw) return;
-    const amount = Number(raw);
-    if (isNaN(amount) || amount <= 0) return alert("Enter a valid amount");
-
-    try {
-      // 1. Insert transaction record (using 'transactions' table from our DB schema)
-      const { error: insertErr } = await supabase.from("transactions").insert([
-        {
-          profile_id: user?.id,
-          loan_id: loan.id,
-          amount: amount,
-          type: 'repayment'
-        },
-      ]);
-      if (insertErr) throw insertErr;
-
-      // 2. Update loan balance & status
-      const currentBalance = Number(loan.balance ?? loan.amount);
-      const newBalance = currentBalance - amount;
-      const newStatus = newBalance <= 0 ? LoanStatus.SETTLED : loan.status;
-
-      const { error: updErr } = await supabase
+    if (user) {
+      setUser(user);
+      
+      // 1. Fetch Loans & Collateral linked to loans
+      const { data: loanData, error } = await supabase
         .from("loans")
-        .update({ balance: newBalance, status: newStatus })
-        .eq("id", loan.id);
+        .select("*, collateral(*)")
+        .eq("borrower_id", user.id)
+        .order("created_at", { ascending: false });
 
-      if (updErr) throw updErr;
+      if (!error && loanData) {
+        setLoans(loanData);
 
-      // 3. Optimistic UI update
-      const updatedLoans = loans.map((l) => (l.id === loan.id ? { ...l, balance: newBalance, status: newStatus } : l));
-      setLoans(updatedLoans);
-      computeSummary(updatedLoans);
-      alert("Payment recorded successfully.");
+        // Flatten collateral for the "My Collateral" list
+        const allCollateral = loanData.flatMap(l => l.collateral || []);
+        setCollateral(allCollateral);
 
-    } catch (err) {
-      console.error("recordPayment error:", err);
-      alert(err.message || "Failed to record payment.");
+        // Calculate Stats
+        const active = loanData.filter(l => l.status === 'active');
+        const activeAmt = active.reduce((sum, l) => sum + Number(l.amount), 0);
+        const repaymentAmt = active.reduce((sum, l) => sum + Number(l.balance), 0); // Balance implies repayment needed
+
+        setStats({
+          activeAmount: activeAmt,
+          repayment: repaymentAmt,
+          collateralCount: allCollateral.length
+        });
+      }
     }
+    setLoading(false);
   };
 
-  const handleSettleLoan = async (loan) => {
-    if (!confirm("Mark this loan as fully settled?")) return;
-    try {
-      const { error } = await supabase
-        .from("loans")
-        .update({ status: LoanStatus.SETTLED, balance: 0 })
-        .eq("id", loan.id);
+  const handlePayment = async (loan) => {
+    const amount = prompt("Enter amount to pay (ZMW):");
+    if (!amount || isNaN(amount)) return;
 
-      if (error) throw error;
+    // Simulate payment logic (Update balance)
+    const newBalance = Math.max(0, loan.balance - Number(amount));
+    const newStatus = newBalance === 0 ? 'settled' : loan.status;
 
-      const updatedLoans = loans.map((l) => (l.id === loan.id ? { ...l, status: LoanStatus.SETTLED, balance: 0 } : l));
-      setLoans(updatedLoans);
-      computeSummary(updatedLoans);
-      alert("Loan marked settled.");
-    } catch (err) {
-      console.error("handleSettleLoan error:", err);
-      alert("Could not mark as settled.");
+    const { error } = await supabase
+      .from('loans')
+      .update({ balance: newBalance, status: newStatus })
+      .eq('id', loan.id);
+
+    if (error) alert("Payment failed: " + error.message);
+    else {
+      alert("Payment Successful!");
+      fetchDashboardData();
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-100">
-        <div>Loading your loans...</div>
+        <div className="animate-pulse">Loading Dashboard...</div>
       </div>
     );
   }
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-100">
-      {/* Sidebar */}
       <Sidebar />
 
-      <main className="flex-1 p-6">
-        <div className="max-w-7xl mx-auto">
-          <header className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">My Loans</h1>
-              <p className="text-sm text-gray-400">Overview of active loans, repayments, and history.</p>
-            </div>
-          </header>
+      <main className="flex-1 p-8 overflow-y-auto">
+        
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-bold text-white">
+            Welcome, <span className="text-indigo-400">{user?.email?.split('@')[0]}</span>
+          </h1>
+          <div className="p-2 bg-gray-800 rounded-full hover:bg-gray-700 cursor-pointer relative">
+            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+          </div>
+        </div>
 
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div className="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-sm">
-              <p className="text-sm text-gray-400">Active Loans</p>
-              <p className="text-2xl font-bold mt-2 text-white">{summary.activeCount}</p>
+        {/* Top Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Active Loan Amount */}
+          <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-sm font-medium text-gray-400">Active Loan Amount</p>
+              <div className="p-1.5 bg-sky-900/30 rounded text-sky-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+              </div>
             </div>
-
-            <div className="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-sm">
-              <p className="text-sm text-gray-400">Settled Loans</p>
-              <p className="text-2xl font-bold mt-2 text-white">{summary.settledCount}</p>
+            <h2 className="text-3xl font-bold text-white mb-2">K {stats.activeAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</h2>
+            <div className="flex justify-between text-xs text-gray-500 mt-4 pt-4 border-t border-gray-700">
+              <span>Loan Interest:</span>
+              <span className="text-gray-300 font-medium">K {(stats.activeAmount * 0.4).toLocaleString()}</span>
             </div>
+          </div>
 
-            <div className="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-sm">
-              <p className="text-sm text-gray-400">Total Outstanding</p>
-              <p className="text-2xl font-bold mt-2 text-white">
-                K {Number(summary.totalOutstanding).toLocaleString()}
-              </p>
+          {/* Loan Repayment */}
+          <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-sm font-medium text-gray-400">Loan Repayment</p>
+              <div className="p-1.5 bg-orange-900/30 rounded text-orange-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              </div>
             </div>
-          </section>
+            <h2 className="text-3xl font-bold text-white mb-2">K {stats.repayment.toLocaleString(undefined, {minimumFractionDigits: 2})}</h2>
+            <div className="flex justify-between text-xs text-gray-500 mt-4 pt-4 border-t border-gray-700">
+              <span>Due Date:</span>
+              <span className="text-gray-300 font-medium">{new Date().toLocaleDateString()}</span>
+            </div>
+          </div>
 
-          <section>
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Loan History</h2>
-              <div className="text-sm text-gray-400">Recent activity for your account</div>
+          {/* Active Collateral */}
+          <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
+            <div className="flex justify-between items-start mb-4">
+              <p className="text-sm font-medium text-gray-400">Active Collateral</p>
+              <div className="p-1.5 bg-green-900/30 rounded text-green-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              </div>
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-2">{stats.collateralCount} Items</h2>
+            <p className="text-xs text-gray-500 mt-2">Secured Assets</p>
+          </div>
+        </div>
+
+        {/* Main Content Grid (Loans & Collateral) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Left Column: My Loans */}
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-white">My Loans</h3>
+              <button className="text-sm text-sky-400 hover:text-sky-300 flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Download History
+              </button>
             </div>
 
             {loans.length === 0 ? (
-              <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 text-center text-gray-300">
-                No loans found.
-              </div>
+              <p className="text-gray-500 text-center py-4">No active loans found. <br/><a href="/apply" className="text-indigo-400 underline">Apply for one?</a></p>
             ) : (
-              <div className="space-y-4">
-                {loans.map((loan) => (
-                  <div key={loan.id} className="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                      <div className="text-sm text-gray-400">Loan #{loan.id.slice(0, 8)}...</div>
-                      <div className="text-lg font-semibold text-white mt-1">
-                        K {Number(loan.amount).toLocaleString()}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        Applied: {new Date(loan.created_at).toLocaleDateString()}
-                      </div>
-                      <div className={`mt-2 text-xs font-bold uppercase tracking-wider ${
-                        loan.status === LoanStatus.ACTIVE ? 'text-green-400' : 
-                        loan.status === LoanStatus.PENDING ? 'text-yellow-400' : 'text-gray-400'
-                      }`}>
-                        {loan.status}
-                      </div>
-                    </div>
+              <div className="space-y-6">
+                {loans.map(loan => {
+                  const total = loan.total_repayment || (loan.amount * 1.4);
+                  const paid = total - loan.balance;
+                  const progress = Math.min(100, (paid / total) * 100);
+                  const collateralName = loan.collateral?.[0]?.description || "Unsecured";
 
-                    <div className="text-right">
-                      <div className="text-sm text-gray-400">Balance</div>
-                      <div className="text-lg font-bold text-white mt-1">
-                        K {Number(loan.balance ?? loan.amount).toLocaleString()}
-                      </div>
-                      <div className="mt-3 flex items-center justify-end gap-2">
-                        {/* Only show Payment/Settle if active */}
-                        {loan.status === LoanStatus.ACTIVE && (
-                          <>
-                            <button
-                              onClick={() => handleRecordPayment(loan)}
-                              className="px-3 py-1 text-sm bg-indigo-600 hover:bg-indigo-700 rounded text-white"
-                            >
-                              Pay
-                            </button>
-                            <button
-                              onClick={() => handleSettleLoan(loan)}
-                              className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700 rounded text-white"
-                            >
-                              Settle
-                            </button>
-                          </>
-                        )}
-                        <span className="px-3 py-1 text-sm bg-gray-700 rounded text-gray-200 cursor-default">
-                          View
+                  return (
+                    <div key={loan.id} className="bg-gray-900/50 rounded-lg p-5 border border-gray-700">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h4 className="font-bold text-white">Loan #{loan.id.slice(0,6).toUpperCase()}</h4>
+                          <p className="text-xs text-gray-400 mt-1">Secured by: {collateralName}</p>
+                        </div>
+                        <span className={`px-2 py-1 text-xs font-bold uppercase rounded ${
+                          loan.status === 'active' ? 'bg-sky-900 text-sky-300 border border-sky-700' : 'bg-gray-700 text-gray-300'
+                        }`}>
+                          {loan.status}
                         </span>
                       </div>
+
+                      <div className="flex justify-between text-sm mb-2">
+                        <div>
+                          <p className="text-xs text-gray-500">Remaining Balance</p>
+                          <p className="text-xl font-bold text-sky-400">K {loan.balance.toLocaleString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">Principal + Interest</p>
+                          <p className="text-white font-medium">K {total.toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
+                        <div className="bg-sky-500 h-2 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500 mb-4">
+                        <span>{Math.round(progress)}% Paid</span>
+                        <span>K {paid.toLocaleString()} Paid so far</span>
+                      </div>
+
+                      {loan.status === 'active' && (
+                        <button 
+                          onClick={() => handlePayment(loan)}
+                          className="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded font-medium transition shadow-lg shadow-sky-900/20 flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                          Make Payment
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: My Collateral */}
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+            <h3 className="text-lg font-bold text-white mb-6">My Collateral</h3>
+            
+            {collateral.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">No collateral recorded.</p>
+            ) : (
+              <div className="space-y-4">
+                {collateral.map(item => (
+                  <div key={item.id} className="flex gap-4 p-4 bg-gray-900/50 rounded-lg border border-gray-700 items-center">
+                    {/* Placeholder Image (or real URL if exists) */}
+                    <div className="w-16 h-16 bg-gray-700 rounded-lg flex-shrink-0 overflow-hidden">
+                      {item.image_url ? (
+                        <img src={item.image_url} alt="Item" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-500">
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-bold text-white text-sm">{item.description}</h4>
+                        <span className="text-[10px] bg-green-900 text-green-400 px-1.5 py-0.5 rounded border border-green-800 uppercase">
+                          {item.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">Est. Value: K {item.estimated_value?.toLocaleString()}</p>
+                      <button className="text-xs text-sky-400 hover:text-sky-300 mt-2">View Valuation Report</button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </section>
+          </div>
+
         </div>
       </main>
     </div>
