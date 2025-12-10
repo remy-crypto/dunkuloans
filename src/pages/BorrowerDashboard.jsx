@@ -1,81 +1,98 @@
-import React, { useEffect, useState } from "react";
-import Sidebar from "../components/Sidebar";
-import { supabase } from "../lib/SupabaseClient";
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/SupabaseClient';
+import Sidebar from '../components/Sidebar';
+import { CreditCard, Clock, CheckCircle2, TrendingUp, Download, ShieldAlert, Upload, Smartphone, FileText, Wallet, Loader2, Package } from 'lucide-react';
 
 const BorrowerDashboard = () => {
   const [user, setUser] = useState(null);
   const [loans, setLoans] = useState([]);
-  const [collateral, setCollateral] = useState([]);
+  const [collaterals, setCollaterals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ activeAmount: 0, repayment: 0, collateralCount: 0 });
+  
+  // Payment Modal State
+  const [selectedLoan, setSelectedLoan] = useState(null);
+  const [step, setStep] = useState(1);
+  const [selectedNetwork, setSelectedNetwork] = useState('MTN');
+  const [repaymentType, setRepaymentType] = useState('PARTIAL');
+  const [paymentForm, setPaymentForm] = useState({
+      transactionId: '',
+      amountPaid: '',
+      paymentDate: '',
+      proofFile: null
+  });
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Network Config
+  const NETWORKS = {
+      MTN: { name: 'MTN MoMo', number: '096 123 4567', color: 'bg-yellow-400', textColor: 'text-yellow-900' },
+      Airtel: { name: 'Airtel Money', number: '097 123 4567', color: 'bg-red-500', textColor: 'text-white' },
+      Zamtel: { name: 'Zamtel Money', number: '095 123 4567', color: 'bg-green-600', textColor: 'text-white' }
+  };
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchData();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchData = async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    
     if (user) {
-      setUser(user);
-      
-      // 1. Fetch Loans & Collateral linked to loans
-      const { data: loanData, error } = await supabase
-        .from("loans")
-        .select("*, collateral(*)")
-        .eq("borrower_id", user.id)
-        .order("created_at", { ascending: false });
+        setUser(user);
+        // Fetch Loans
+        const { data: loanData } = await supabase
+            .from('loans')
+            .select('*')
+            .eq('borrower_id', user.id)
+            .order('created_at', { ascending: false });
+        
+        if (loanData) setLoans(loanData);
 
-      if (!error && loanData) {
-        setLoans(loanData);
-
-        // Flatten collateral for the "My Collateral" list
-        const allCollateral = loanData.flatMap(l => l.collateral || []);
-        setCollateral(allCollateral);
-
-        // Calculate Stats
-        const active = loanData.filter(l => l.status === 'active');
-        const activeAmt = active.reduce((sum, l) => sum + Number(l.amount), 0);
-        const repaymentAmt = active.reduce((sum, l) => sum + Number(l.balance), 0); // Balance implies repayment needed
-
-        setStats({
-          activeAmount: activeAmt,
-          repayment: repaymentAmt,
-          collateralCount: allCollateral.length
-        });
-      }
+        // Fetch Collateral (Mock logic if table not fully linked yet, or fetch from collateral table)
+        const { data: colData } = await supabase
+            .from('collateral')
+            .select('*')
+            //.eq('owner_id', user.id); // Uncomment if owner_id exists
+        
+        if (colData) setCollaterals(colData);
     }
     setLoading(false);
   };
 
-  const handlePayment = async (loan) => {
-    const amount = prompt("Enter amount to pay (ZMW):");
-    if (!amount || isNaN(amount)) return;
+  // Stats
+  const activeLoans = loans.filter(l => l.status === 'active');
+  const totalPrincipal = activeLoans.reduce((sum, l) => sum + Number(l.amount), 0);
+  const totalRepayment = activeLoans.reduce((sum, l) => sum + (Number(l.balance) || 0), 0); // Using balance as repayment needed
+  const nextPayment = activeLoans.length > 0 ? (Number(activeLoans[0].balance) / 4) : 0; // Mock weekly payment
 
-    // Simulate payment logic (Update balance)
-    const newBalance = Math.max(0, loan.balance - Number(amount));
-    const newStatus = newBalance === 0 ? 'settled' : loan.status;
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault();
+    setIsProcessing(true);
+
+    // Simulate Payment Processing
+    const newBalance = Math.max(0, (selectedLoan.balance || selectedLoan.amount) - Number(paymentForm.amountPaid));
+    const newStatus = newBalance === 0 ? 'settled' : 'active';
 
     const { error } = await supabase
-      .from('loans')
-      .update({ balance: newBalance, status: newStatus })
-      .eq('id', loan.id);
+        .from('loans')
+        .update({ balance: newBalance, status: newStatus })
+        .eq('id', selectedLoan.id);
 
-    if (error) alert("Payment failed: " + error.message);
+    if (error) alert("Payment Failed: " + error.message);
     else {
-      alert("Payment Successful!");
-      fetchDashboardData();
+        alert("Payment Recorded! Pending Verification.");
+        fetchData();
+        resetModal();
     }
+    setIsProcessing(false);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-100">
-        <div className="animate-pulse">Loading Dashboard...</div>
-      </div>
-    );
-  }
+  const resetModal = () => {
+      setSelectedLoan(null);
+      setStep(1);
+      setPaymentForm({ transactionId: '', amountPaid: '', paymentDate: '', proofFile: null });
+  };
+
+  if (loading) return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">Loading...</div>;
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-100">
@@ -83,173 +100,177 @@ const BorrowerDashboard = () => {
 
       <main className="flex-1 p-8 overflow-y-auto">
         
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-white">
-            Welcome, <span className="text-indigo-400">{user?.email?.split('@')[0]}</span>
-          </h1>
-          <div className="p-2 bg-gray-800 rounded-full hover:bg-gray-700 cursor-pointer relative">
-            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+        {/* KYC Banner (Mock Check) */}
+        <div className="bg-orange-900/30 border border-orange-700/50 rounded-xl p-4 flex items-start gap-3 mb-8">
+          <ShieldAlert className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="text-sm font-bold text-orange-200">Identity Verification Required</h3>
+            <p className="text-sm text-gray-400 mt-1">
+              Your account is limited. Upload ID to unlock higher limits.
+            </p>
           </div>
+          <button className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors">
+            Verify Now
+          </button>
         </div>
 
-        {/* Top Stats Cards */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/* Active Loan Amount */}
-          <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-sm font-medium text-gray-400">Active Loan Amount</p>
-              <div className="p-1.5 bg-sky-900/30 rounded text-sky-400">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-              </div>
+            <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-gray-400 font-medium text-sm">Active Loan Amount</h3>
+                    <div className="p-2 bg-blue-900/30 text-blue-400 rounded-lg"><CreditCard className="w-5 h-5" /></div>
+                </div>
+                <p className="text-3xl font-bold text-white">K {totalPrincipal.toLocaleString()}</p>
+                <p className="text-xs text-gray-500 mt-2">Total Due: <span className="text-blue-400">K {totalRepayment.toLocaleString()}</span></p>
             </div>
-            <h2 className="text-3xl font-bold text-white mb-2">K {stats.activeAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</h2>
-            <div className="flex justify-between text-xs text-gray-500 mt-4 pt-4 border-t border-gray-700">
-              <span>Loan Interest:</span>
-              <span className="text-gray-300 font-medium">K {(stats.activeAmount * 0.4).toLocaleString()}</span>
-            </div>
-          </div>
 
-          {/* Loan Repayment */}
-          <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-sm font-medium text-gray-400">Loan Repayment</p>
-              <div className="p-1.5 bg-orange-900/30 rounded text-orange-400">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              </div>
+            <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-gray-400 font-medium text-sm">Next Repayment</h3>
+                    <div className="p-2 bg-orange-900/30 text-orange-400 rounded-lg"><Clock className="w-5 h-5" /></div>
+                </div>
+                <p className="text-3xl font-bold text-white">K {nextPayment.toLocaleString()}</p>
+                <p className="text-xs text-gray-500 mt-2">Estimated Weekly</p>
             </div>
-            <h2 className="text-3xl font-bold text-white mb-2">K {stats.repayment.toLocaleString(undefined, {minimumFractionDigits: 2})}</h2>
-            <div className="flex justify-between text-xs text-gray-500 mt-4 pt-4 border-t border-gray-700">
-              <span>Due Date:</span>
-              <span className="text-gray-300 font-medium">{new Date().toLocaleDateString()}</span>
-            </div>
-          </div>
 
-          {/* Active Collateral */}
-          <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
-            <div className="flex justify-between items-start mb-4">
-              <p className="text-sm font-medium text-gray-400">Active Collateral</p>
-              <div className="p-1.5 bg-green-900/30 rounded text-green-400">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              </div>
+            <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-gray-400 font-medium text-sm">Active Collateral</h3>
+                    <div className="p-2 bg-emerald-900/30 text-emerald-400 rounded-lg"><CheckCircle2 className="w-5 h-5" /></div>
+                </div>
+                <p className="text-3xl font-bold text-white">{collaterals.length} Items</p>
+                <p className="text-xs text-gray-500 mt-2">Secured Assets</p>
             </div>
-            <h2 className="text-3xl font-bold text-white mb-2">{stats.collateralCount} Items</h2>
-            <p className="text-xs text-gray-500 mt-2">Secured Assets</p>
-          </div>
         </div>
 
-        {/* Main Content Grid (Loans & Collateral) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Left Column: My Loans */}
-          <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold text-white">My Loans</h3>
-              <button className="text-sm text-sky-400 hover:text-sky-300 flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                Download History
-              </button>
+            {/* My Loans List */}
+            <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-lg font-bold text-white">My Loans</h2>
+                    <button className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
+                        <Download className="w-4 h-4" /> History
+                    </button>
+                </div>
+
+                {loans.length === 0 ? <p className="text-gray-500">No active loans.</p> : (
+                    <div className="space-y-4">
+                        {loans.map(loan => {
+                            const total = Number(loan.amount) * 1.4; // Mock Interest
+                            const balance = Number(loan.balance) || total;
+                            const paid = total - balance;
+                            const progress = (paid / total) * 100;
+
+                            return (
+                                <div key={loan.id} className="p-4 bg-gray-900 rounded-lg border border-gray-700">
+                                    <div className="flex justify-between mb-2">
+                                        <span className="font-bold text-white">#{loan.id.slice(0,6)}</span>
+                                        <span className={`px-2 text-xs rounded uppercase font-bold ${loan.status === 'active' ? 'bg-green-900 text-green-400' : 'bg-gray-700 text-gray-400'}`}>{loan.status}</span>
+                                    </div>
+                                    
+                                    <div className="bg-gray-800 rounded-lg p-3 mb-3 border border-gray-700">
+                                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                                            <span>Remaining: <b className="text-indigo-400">K {balance.toLocaleString()}</b></span>
+                                            <span>Total: K {total.toLocaleString()}</span>
+                                        </div>
+                                        <div className="w-full bg-gray-700 rounded-full h-1.5">
+                                            <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: `${progress}%` }}></div>
+                                        </div>
+                                    </div>
+
+                                    {loan.status === 'active' && (
+                                        <button 
+                                            onClick={() => { setSelectedLoan(loan); setStep(1); }}
+                                            className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded flex items-center justify-center gap-2 text-sm font-bold"
+                                        >
+                                            <Wallet className="w-4 h-4" /> Make Payment
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
-            {loans.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No active loans found. <br/><a href="/apply" className="text-indigo-400 underline">Apply for one?</a></p>
-            ) : (
-              <div className="space-y-6">
-                {loans.map(loan => {
-                  const total = loan.total_repayment || (loan.amount * 1.4);
-                  const paid = total - loan.balance;
-                  const progress = Math.min(100, (paid / total) * 100);
-                  const collateralName = loan.collateral?.[0]?.description || "Unsecured";
-
-                  return (
-                    <div key={loan.id} className="bg-gray-900/50 rounded-lg p-5 border border-gray-700">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h4 className="font-bold text-white">Loan #{loan.id.slice(0,6).toUpperCase()}</h4>
-                          <p className="text-xs text-gray-400 mt-1">Secured by: {collateralName}</p>
-                        </div>
-                        <span className={`px-2 py-1 text-xs font-bold uppercase rounded ${
-                          loan.status === 'active' ? 'bg-sky-900 text-sky-300 border border-sky-700' : 'bg-gray-700 text-gray-300'
-                        }`}>
-                          {loan.status}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between text-sm mb-2">
-                        <div>
-                          <p className="text-xs text-gray-500">Remaining Balance</p>
-                          <p className="text-xl font-bold text-sky-400">K {loan.balance.toLocaleString()}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-gray-500">Principal + Interest</p>
-                          <p className="text-white font-medium">K {total.toLocaleString()}</p>
-                        </div>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
-                        <div className="bg-sky-500 h-2 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
-                      </div>
-                      <div className="flex justify-between text-xs text-gray-500 mb-4">
-                        <span>{Math.round(progress)}% Paid</span>
-                        <span>K {paid.toLocaleString()} Paid so far</span>
-                      </div>
-
-                      {loan.status === 'active' && (
-                        <button 
-                          onClick={() => handlePayment(loan)}
-                          className="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded font-medium transition shadow-lg shadow-sky-900/20 flex items-center justify-center gap-2"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-                          Make Payment
-                        </button>
-                      )}
+            {/* Collateral List */}
+            <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+                <h2 className="text-lg font-bold text-white mb-6">My Collateral</h2>
+                {collaterals.length === 0 ? <p className="text-gray-500">No collateral recorded.</p> : (
+                    <div className="space-y-4">
+                        {collaterals.map(item => (
+                            <div key={item.id} className="flex gap-4 p-3 bg-gray-900 rounded-lg border border-gray-700">
+                                <div className="w-12 h-12 bg-gray-800 rounded flex items-center justify-center">
+                                    <Package className="text-gray-500 w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-white text-sm">{item.description}</h4>
+                                    <p className="text-xs text-gray-500">Est. Value: K {item.estimated_value}</p>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Right Column: My Collateral */}
-          <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-            <h3 className="text-lg font-bold text-white mb-6">My Collateral</h3>
-            
-            {collateral.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No collateral recorded.</p>
-            ) : (
-              <div className="space-y-4">
-                {collateral.map(item => (
-                  <div key={item.id} className="flex gap-4 p-4 bg-gray-900/50 rounded-lg border border-gray-700 items-center">
-                    {/* Placeholder Image (or real URL if exists) */}
-                    <div className="w-16 h-16 bg-gray-700 rounded-lg flex-shrink-0 overflow-hidden">
-                      {item.image_url ? (
-                        <img src={item.image_url} alt="Item" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-500">
-                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-bold text-white text-sm">{item.description}</h4>
-                        <span className="text-[10px] bg-green-900 text-green-400 px-1.5 py-0.5 rounded border border-green-800 uppercase">
-                          {item.status}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-1">Est. Value: K {item.estimated_value?.toLocaleString()}</p>
-                      <button className="text-xs text-sky-400 hover:text-sky-300 mt-2">View Valuation Report</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
+                )}
+            </div>
         </div>
+
+        {/* Payment Modal */}
+        {selectedLoan && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                <div className="bg-gray-800 rounded-xl w-full max-w-lg overflow-hidden border border-gray-700">
+                    <div className="p-6 border-b border-gray-700 flex justify-between items-center">
+                        <h3 className="text-lg font-bold text-white">Loan Repayment</h3>
+                        <button onClick={resetModal} className="text-gray-400 hover:text-white">✕</button>
+                    </div>
+
+                    <div className="p-6">
+                        {step === 1 ? (
+                            <div className="space-y-4">
+                                <p className="text-gray-400 text-sm text-center mb-4">Select Mobile Money Network</p>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {Object.keys(NETWORKS).map(net => (
+                                        <button key={net} onClick={() => setSelectedNetwork(net)} className={`p-4 rounded-lg border-2 flex flex-col items-center gap-2 ${selectedNetwork === net ? 'border-indigo-500 bg-indigo-900/20' : 'border-gray-700 bg-gray-900'}`}>
+                                            <div className={`w-8 h-8 rounded-full ${NETWORKS[net].color}`}></div>
+                                            <span className="text-xs font-bold text-white">{net}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                                
+                                <div className="bg-gray-900 p-4 rounded-lg text-center mt-4">
+                                    <p className="text-xs text-gray-500 uppercase">Send Money To</p>
+                                    <p className="text-xl font-mono font-bold text-white my-1">{NETWORKS[selectedNetwork].number}</p>
+                                    <p className="text-xs text-indigo-400">Ref: LOAN-{selectedLoan.id.slice(0,6)}</p>
+                                </div>
+
+                                <button onClick={() => setStep(2)} className="w-full py-3 bg-indigo-600 text-white font-bold rounded-lg mt-4">Next Step</button>
+                            </div>
+                        ) : (
+                            <form onSubmit={handlePaymentSubmit} className="space-y-4">
+                                <div>
+                                    <label className="text-xs text-gray-400">Amount Paid (ZMW)</label>
+                                    <input type="number" required className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white" 
+                                        onChange={e => setPaymentForm({...paymentForm, amountPaid: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-400">Transaction ID</label>
+                                    <input type="text" required className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white" 
+                                        onChange={e => setPaymentForm({...paymentForm, transactionId: e.target.value})} />
+                                </div>
+                                
+                                <div className="flex gap-2 mt-4">
+                                    <button type="button" onClick={() => setStep(1)} className="px-4 py-2 bg-gray-700 text-white rounded">Back</button>
+                                    <button type="submit" disabled={isProcessing} className="flex-1 py-2 bg-green-600 text-white rounded font-bold">
+                                        {isProcessing ? 'Verifying...' : 'Submit Payment'}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
+
       </main>
     </div>
   );
