@@ -1,2 +1,27 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Force GitHub Linguist to correctly detect React project languages
+
+# Treat JS/TS/React files as primary
+*.js linguist-detectable=true
+*.jsx linguist-detectable=true
+*.ts linguist-detectable=true
+*.tsx linguist-detectable=true
+
+# Ignore build folders
+dist/* linguist-vendored
+build/* linguist-vendored
+node_modules/* linguist-vendored
+
+# Ignore config & metadata noise
+*.json linguist-detectable=false
+*.lock linguist-detectable=false
+*.md linguist-detectable=false
+
+# Ignore images and assets
+*.png linguist-vendored
+*.jpg linguist-vendored
+*.jpeg linguist-vendored
+*.svg linguist-vendored
+*.ico linguist-vendored
+
+# Ignore HTML templates so they don't dominate language % 
+*.html linguist-vendored
