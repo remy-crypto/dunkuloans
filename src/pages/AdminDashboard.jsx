@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { supabase } from "../lib/SupabaseClient";
 
-const AdminDashboard = () => {
-  const [loans, setLoans] = useState([]);
-  const [loading, setLoading] = useState(true);
+// ==========================================
+// 1. EXECUTIVE OVERVIEW
+// ==========================================
+const ExecutiveOverview = () => {
   const [stats, setStats] = useState({
     activeAmount: 0,
     totalCount: 0,
@@ -13,192 +15,292 @@ const AdminDashboard = () => {
     settledCount: 0,
     defaultCount: 0
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const { data, error } = await supabase.from("loans").select("*");
+      if (!error && data) {
+        const active = data.filter(l => l.status === 'active');
+        const pending = data.filter(l => l.status === 'pending');
+        const settled = data.filter(l => l.status === 'settled');
+        const defaulted = data.filter(l => l.status === 'default');
+        
+        setStats({
+          activeAmount: active.reduce((sum, item) => sum + Number(item.amount), 0),
+          totalCount: data.length,
+          activeCount: active.length,
+          pendingCount: pending.length,
+          settledCount: settled.length,
+          defaultCount: defaulted.length
+        });
+      }
+      setLoading(false);
+    };
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  const getDonutStrokeDash = (count, total) => {
+    if (total === 0) return "0, 100";
+    return `${(count / total) * 100}, 100`;
+  };
+
+  if (loading) return <div className="p-8 text-gray-400 animate-pulse">Loading Overview...</div>;
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Executive Overview</h1>
+        <p className="text-gray-400 mt-1">Portfolio performance, risk metrics, and operational stats.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 relative overflow-hidden">
+          <p className="text-sm font-medium text-gray-400">Upcoming Repayments</p>
+          <h2 className="text-3xl font-bold text-white mt-2">K {stats.activeAmount.toLocaleString()}</h2>
+          <div className="absolute top-6 right-6 p-2 bg-green-900/30 rounded-lg text-green-400">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+          </div>
+        </div>
+        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
+          <p className="text-sm font-medium text-gray-400">Portfolio Risk (LTV)</p>
+          <h2 className="text-3xl font-bold text-white mt-2">40.0%</h2>
+          <p className="text-xs text-green-400 mt-2">Low Risk Target: &lt;60%</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-gray-800 p-6 rounded-xl border border-gray-700">
+          <h3 className="text-lg font-bold text-white mb-6">Revenue & Expenses</h3>
+          <div className="h-64 flex items-end justify-between gap-2 px-2 relative border-b border-gray-700 pb-6">
+             {[40, 60, 45, 70, 85, 90].map((h, i) => (
+                <div key={i} className="w-full bg-indigo-600/20 hover:bg-indigo-600/40 rounded-t transition-all" style={{ height: `${h}%` }}></div>
+             ))}
+          </div>
+        </div>
+
+        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 flex flex-col items-center justify-center">
+          <h3 className="text-lg font-bold text-white mb-6 w-full text-left">Distribution</h3>
+          <div className="relative w-48 h-48">
+            <svg viewBox="0 0 36 36" className="w-full h-full rotate-[-90deg]">
+              <path className="text-gray-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3.8" />
+              <path className="text-sky-500" strokeDasharray={getDonutStrokeDash(stats.activeCount, stats.totalCount)} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3.8" />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-bold text-white">{stats.totalCount}</span>
+              <span className="text-xs text-gray-400">Total</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ==========================================
+// 2. CLIENTS VIEW
+// ==========================================
+const ClientsView = () => {
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      const { data, error } = await supabase.from('profiles').select('*').eq('role', 'borrower');
+      if (!error) setClients(data);
+      setLoading(false);
+    };
+    fetchClients();
+  }, []);
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-white mb-6">Client Management</h1>
+      <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+        <table className="w-full text-left text-sm text-gray-400">
+          <thead className="bg-gray-900 text-gray-200 uppercase font-medium">
+            <tr>
+              <th className="px-6 py-4">Name</th>
+              <th className="px-6 py-4">Email</th>
+              <th className="px-6 py-4">Joined</th>
+              <th className="px-6 py-4">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-700">
+            {loading ? (
+              <tr><td colSpan="4" className="px-6 py-4 text-center">Loading clients...</td></tr>
+            ) : clients.length === 0 ? (
+              <tr><td colSpan="4" className="px-6 py-4 text-center">No clients found.</td></tr>
+            ) : (
+              clients.map(client => (
+                <tr key={client.id} className="hover:bg-gray-700/50 transition-colors">
+                  <td className="px-6 py-4 font-medium text-white">{client.full_name || "Unknown"}</td>
+                  <td className="px-6 py-4">{client.email}</td>
+                  <td className="px-6 py-4">{new Date(client.created_at).toLocaleDateString()}</td>
+                  <td className="px-6 py-4"><span className="px-2 py-1 bg-green-900/50 text-green-400 rounded text-xs">Active</span></td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// ==========================================
+// 3. INVESTORS VIEW (NEWLY BUILT)
+// ==========================================
+const InvestorsView = () => {
+  const [investors, setInvestors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [totals, setTotals] = useState({ invested: 0, returns: 0 });
+
+  const fetchInvestors = async () => {
     setLoading(true);
-    // Fetch loans
+    // Join investors with profiles to get names
     const { data, error } = await supabase
-      .from("loans")
-      .select("*")
-      .order("created_at", { ascending: false });
-
+      .from('investors')
+      .select('*, profiles(full_name, email)');
+    
     if (!error && data) {
-      setLoans(data);
-      
-      // Calculate Stats
-      const active = data.filter(l => l.status === 'active');
-      const pending = data.filter(l => l.status === 'pending');
-      const settled = data.filter(l => l.status === 'settled');
-      const defaulted = data.filter(l => l.status === 'default');
-
-      const totalActiveValue = active.reduce((sum, item) => sum + Number(item.amount), 0);
-
-      setStats({
-        activeAmount: totalActiveValue,
-        totalCount: data.length,
-        activeCount: active.length,
-        pendingCount: pending.length,
-        settledCount: settled.length,
-        defaultCount: defaulted.length
-      });
+      setInvestors(data);
+      const totalInv = data.reduce((acc, curr) => acc + Number(curr.total_invested), 0);
+      const totalRet = data.reduce((acc, curr) => acc + Number(curr.total_returns), 0);
+      setTotals({ invested: totalInv, returns: totalRet });
     }
     setLoading(false);
   };
 
-  // Helper for Donut Chart calculation
-  const getDonutStrokeDash = (count, total) => {
-    if (total === 0) return "0, 100";
-    const percentage = (count / total) * 100;
-    return `${percentage}, 100`;
+  useEffect(() => {
+    fetchInvestors();
+  }, []);
+
+  const handleAddFunds = async (investorId, currentAmount) => {
+    const amount = prompt("Enter amount to add (ZMW):");
+    if (!amount || isNaN(amount)) return;
+
+    const newTotal = Number(currentAmount) + Number(amount);
+
+    const { error } = await supabase
+      .from('investors')
+      .update({ total_invested: newTotal })
+      .eq('id', investorId);
+
+    if (error) alert("Error adding funds: " + error.message);
+    else {
+      alert("Funds added successfully!");
+      fetchInvestors();
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-gray-100">
-        <div className="animate-pulse">Loading Portal...</div>
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Investor Management</h1>
+        <p className="text-gray-400 mt-1">Track liquidity providers and capital allocation.</p>
       </div>
-    );
-  }
+
+      {/* Financial Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-indigo-900/20 p-6 rounded-xl border border-indigo-500/30">
+          <p className="text-sm font-medium text-indigo-300">Total Capital Raised</p>
+          <h2 className="text-3xl font-bold text-white mt-2">K {totals.invested.toLocaleString()}</h2>
+        </div>
+        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
+          <p className="text-sm font-medium text-gray-400">Total Returns Paid</p>
+          <h2 className="text-3xl font-bold text-white mt-2">K {totals.returns.toLocaleString()}</h2>
+        </div>
+      </div>
+
+      {/* Investors Table */}
+      <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+          <h3 className="font-semibold text-white">Active Investors</h3>
+          <button className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded transition">
+            Invite Investor
+          </button>
+        </div>
+        <table className="w-full text-left text-sm text-gray-400">
+          <thead className="bg-gray-900 text-gray-200 uppercase font-medium">
+            <tr>
+              <th className="px-6 py-4">Investor</th>
+              <th className="px-6 py-4">Total Invested</th>
+              <th className="px-6 py-4">Returns Earned</th>
+              <th className="px-6 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-700">
+            {loading ? (
+              <tr><td colSpan="4" className="px-6 py-8 text-center">Loading data...</td></tr>
+            ) : investors.length === 0 ? (
+              <tr><td colSpan="4" className="px-6 py-8 text-center text-gray-500">No investors found.</td></tr>
+            ) : (
+              investors.map((inv) => (
+                <tr key={inv.id} className="hover:bg-gray-700/50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="font-medium text-white">{inv.profiles?.full_name || "Unknown"}</div>
+                    <div className="text-xs text-gray-500">{inv.profiles?.email}</div>
+                  </td>
+                  <td className="px-6 py-4 font-bold text-white">K {inv.total_invested.toLocaleString()}</td>
+                  <td className="px-6 py-4 text-green-400">+ K {inv.total_returns.toLocaleString()}</td>
+                  <td className="px-6 py-4 text-right">
+                    <button 
+                      onClick={() => handleAddFunds(inv.id, inv.total_invested)}
+                      className="text-xs border border-indigo-500 text-indigo-400 hover:bg-indigo-500 hover:text-white px-3 py-1 rounded transition"
+                    >
+                      Add Funds
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// ==========================================
+// 4. PLACEHOLDER VIEW 
+// ==========================================
+const ComingSoonView = ({ title }) => (
+  <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+    <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4 text-indigo-500">
+      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+    </div>
+    <h2 className="text-2xl font-bold text-white">{title}</h2>
+    <p className="text-gray-400 mt-2 max-w-md">This module is currently under development.</p>
+  </div>
+);
+
+// ==========================================
+// 5. MAIN ADMIN DASHBOARD (The Router)
+// ==========================================
+const AdminDashboard = () => {
+  const location = useLocation();
+  const path = location.pathname;
+
+  const renderContent = () => {
+    switch (path) {
+      case '/dashboard': return <ExecutiveOverview />;
+      case '/clients': return <ClientsView />;
+      case '/investors': return <InvestorsView />; // <--- NOW ACTIVE
+      case '/kyc': return <ComingSoonView title="KYC Verification Queue" />;
+      case '/collateral': return <ComingSoonView title="Collateral Review" />;
+      case '/underwriting': return <ComingSoonView title="Underwriting Desk" />;
+      case '/support': return <ComingSoonView title="Support Tickets" />;
+      default: return <ExecutiveOverview />;
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-100">
       <Sidebar />
-
       <main className="flex-1 p-8 overflow-y-auto">
-        
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">Executive Overview</h1>
-          <p className="text-gray-400 mt-1">Portfolio performance, risk metrics, and operational stats.</p>
-        </div>
-
-        {/* Top Cards Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          
-          {/* Card 1: Upcoming Repayments (Active Amount) */}
-          <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 relative overflow-hidden">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-gray-400">Upcoming Repayments</p>
-                <h2 className="text-3xl font-bold text-white mt-2">
-                  K {stats.activeAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </h2>
-                <p className="text-xs text-gray-500 mt-2">Due in next 30 days</p>
-              </div>
-              <div className="p-2 bg-green-900/30 rounded-lg text-green-400">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Portfolio Risk (LTV) - Mocked logic for UI matching */}
-          <div className="bg-gray-800 p-6 rounded-xl border border-gray-700">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-gray-400">Portfolio Risk (LTV)</p>
-                <h2 className="text-3xl font-bold text-white mt-2">40.0%</h2>
-                <p className="text-xs text-green-400 mt-2">Low Risk Target: &lt;60%</p>
-              </div>
-              <div className="p-2 bg-orange-900/30 rounded-lg text-orange-400">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Revenue & Expenses (Line Chart - Visual Simulation) */}
-          <div className="lg:col-span-2 bg-gray-800 p-6 rounded-xl border border-gray-700">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold text-white">Revenue & Expenses</h3>
-              <div className="flex gap-2 text-xs">
-                <span className="px-2 py-1 bg-gray-700 rounded text-gray-300">Revenue</span>
-                <span className="px-2 py-1 bg-transparent text-gray-500">Volume</span>
-              </div>
-            </div>
-            
-            {/* CSS-Only Line Chart Representation */}
-            <div className="h-64 flex items-end justify-between gap-2 px-2 relative">
-              {/* Grid Lines */}
-              <div className="absolute inset-0 flex flex-col justify-between text-xs text-gray-600 pointer-events-none">
-                <div className="border-b border-gray-700 w-full h-0"></div>
-                <div className="border-b border-gray-700 w-full h-0"></div>
-                <div className="border-b border-gray-700 w-full h-0"></div>
-                <div className="border-b border-gray-700 w-full h-0"></div>
-                <div className="border-b border-gray-700 w-full h-0"></div>
-              </div>
-
-              {/* Simple SVG Curve */}
-              <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
-                <path d="M0,150 C50,140 100,100 150,120 C200,140 250,90 300,80 C350,70 400,50 500,40" 
-                      fill="none" stroke="#0ea5e9" strokeWidth="3" vectorEffect="non-scaling-stroke" />
-                <path d="M0,200 C50,195 100,190 150,190 C200,188 250,185 300,180 C350,175 400,170 500,165" 
-                      fill="none" stroke="#ef4444" strokeWidth="3" vectorEffect="non-scaling-stroke" />
-              </svg>
-
-              {/* X Axis Labels */}
-              <div className="w-full absolute bottom-0 flex justify-between text-xs text-gray-500 transform translate-y-6">
-                <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
-              </div>
-            </div>
-            <div className="mt-8"></div> {/* Spacer for labels */}
-          </div>
-
-          {/* Loan Status Distribution (Donut Chart) */}
-          <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 flex flex-col items-center justify-center">
-            <h3 className="text-lg font-bold text-white mb-6 w-full text-left">Loan Status Distribution</h3>
-            
-            <div className="relative w-48 h-48">
-              <svg viewBox="0 0 36 36" className="w-full h-full rotate-[-90deg]">
-                {/* Background Ring */}
-                <path className="text-gray-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3.8" />
-                
-                {/* Active Segment (Blue) */}
-                <path className="text-sky-500" 
-                      strokeDasharray={getDonutStrokeDash(stats.activeCount, stats.totalCount)} 
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
-                      fill="none" stroke="currentColor" strokeWidth="3.8" />
-              </svg>
-              {/* Center Text */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-bold text-white">{stats.totalCount}</span>
-                <span className="text-xs text-gray-400">Total Loans</span>
-              </div>
-            </div>
-
-            {/* Legend */}
-            <div className="grid grid-cols-2 gap-4 w-full mt-8">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-sky-500"></span>
-                <span className="text-sm text-gray-300">Active</span>
-                <span className="ml-auto text-sm font-bold text-white">{stats.activeCount}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
-                <span className="text-sm text-gray-300">Pending</span>
-                <span className="ml-auto text-sm font-bold text-white">{stats.pendingCount}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                <span className="text-sm text-gray-300">Paid</span>
-                <span className="ml-auto text-sm font-bold text-white">{stats.settledCount}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                <span className="text-sm text-gray-300">Default</span>
-                <span className="ml-auto text-sm font-bold text-white">{stats.defaultCount}</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
+        {renderContent()}
       </main>
     </div>
   );
