@@ -1,53 +1,70 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/SupabaseClient";
-import Sidebar from "../../components/Sidebar"; // Layout handles sidebar, but we import if needed for standalone testing
 
 export default function PartnerDashboard() {
-  const [stats, setStats] = useState({
-    clients: 0,
-    commission: 0,
-    volume: 0
-  });
+  const [stats, setStats] = useState({ clients: 0, commission: 0, volume: 0 });
   const [recentLoans, setRecentLoans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState(null);
 
   useEffect(() => {
+    let mounted = true;
+
+    const fetchAgentData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          // 1. Get Agent ID safely
+          const { data: agent, error: agentError } = await supabase
+            .from('agents')
+            .select('id, total_commission')
+            .eq('profile_id', user.id)
+            .maybeSingle(); // <--- FIX: Use maybeSingle() instead of single() to avoid 406 error if not found
+
+          if (agentError) throw agentError;
+
+          if (agent) {
+            // 2. Get Loans linked to this Agent
+            const { data: loans, error: loansError } = await supabase
+              .from('loans')
+              .select('*, profiles(full_name, email)')
+              .eq('agent_id', agent.id)
+              .order('created_at', { ascending: false });
+
+            if (loansError) throw loansError;
+
+            if (mounted && loans) {
+              const active = loans.filter(l => l.status === 'active');
+              const volume = active.reduce((sum, l) => sum + Number(l.amount), 0);
+              
+              setStats({
+                clients: loans.length,
+                commission: agent.total_commission,
+                volume: volume
+              });
+              setRecentLoans(loans.slice(0, 5));
+            }
+          } else {
+            // User is not an agent
+            if (mounted) setErrorMsg("No Agent profile found for this user.");
+          }
+        }
+      } catch (err) {
+        console.error("Partner Dash Error:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
     fetchAgentData();
+
+    return () => { mounted = false; };
   }, []);
 
-  const fetchAgentData = async () => {
-    setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (user) {
-      // 1. Get Agent ID
-      const { data: agent } = await supabase.from('agents').select('id, total_commission').eq('profile_id', user.id).single();
-      
-      if (agent) {
-        // 2. Get Loans linked to this Agent
-        const { data: loans } = await supabase
-          .from('loans')
-          .select('*, profiles(full_name, email)')
-          .eq('agent_id', agent.id)
-          .order('created_at', { ascending: false });
-
-        if (loans) {
-          const active = loans.filter(l => l.status === 'active');
-          const volume = active.reduce((sum, l) => sum + Number(l.amount), 0);
-          
-          setStats({
-            clients: loans.length, // Total applications
-            commission: agent.total_commission,
-            volume: volume
-          });
-          setRecentLoans(loans.slice(0, 5));
-        }
-      }
-    }
-    setLoading(false);
-  };
-
   if (loading) return <div className="text-white text-center p-10 animate-pulse">Loading Agent Portal...</div>;
+
+  if (errorMsg) return <div className="text-red-400 text-center p-10">{errorMsg}</div>;
 
   return (
     <div className="space-y-8">
