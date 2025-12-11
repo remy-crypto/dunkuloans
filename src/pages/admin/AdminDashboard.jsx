@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
+import Sidebar from "../../components/Sidebar";
 import { supabase } from "../../lib/SupabaseClient";
 
-export default function AdminDashboard() {
+// ==========================================
+// 1. EXECUTIVE OVERVIEW (Real-Time)
+// ==========================================
+const ExecutiveOverview = () => {
   const [stats, setStats] = useState({
     activeAmount: 0,
     totalCount: 0,
@@ -12,28 +17,49 @@ export default function AdminDashboard() {
   });
   const [loading, setLoading] = useState(true);
 
+  const calculateStats = (data) => {
+    const active = data.filter(l => l.status === 'active');
+    const pending = data.filter(l => l.status === 'pending');
+    const settled = data.filter(l => l.status === 'settled');
+    const defaulted = data.filter(l => l.status === 'default');
+    
+    setStats({
+      activeAmount: active.reduce((sum, item) => sum + Number(item.amount), 0),
+      totalCount: data.length,
+      activeCount: active.length,
+      pendingCount: pending.length,
+      settledCount: settled.length,
+      defaultCount: defaulted.length
+    });
+  };
+
   useEffect(() => {
+    // 1. Initial Fetch
     const fetchData = async () => {
-      setLoading(true);
       const { data, error } = await supabase.from("loans").select("*");
       if (!error && data) {
-        const active = data.filter(l => l.status === 'active');
-        const pending = data.filter(l => l.status === 'pending');
-        const settled = data.filter(l => l.status === 'settled');
-        const defaulted = data.filter(l => l.status === 'default');
-        
-        setStats({
-          activeAmount: active.reduce((sum, item) => sum + Number(item.amount), 0),
-          totalCount: data.length,
-          activeCount: active.length,
-          pendingCount: pending.length,
-          settledCount: settled.length,
-          defaultCount: defaulted.length
-        });
+        calculateStats(data);
       }
       setLoading(false);
     };
     fetchData();
+
+    // 2. Real-Time Subscription
+    const subscription = supabase
+      .channel('admin-dashboard-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'loans' },
+        (payload) => {
+          // Re-fetch on any change to ensure accuracy
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, []);
 
   const getDonutStrokeDash = (count, total) => {
@@ -50,7 +76,6 @@ export default function AdminDashboard() {
         <p className="text-gray-400 mt-1">Portfolio performance, risk metrics, and operational stats.</p>
       </div>
 
-      {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 relative overflow-hidden">
           <p className="text-sm font-medium text-gray-400">Upcoming Repayments</p>
@@ -66,7 +91,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Charts Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-gray-800 p-6 rounded-xl border border-gray-700">
           <h3 className="text-lg font-bold text-white mb-6">Revenue & Expenses</h3>
@@ -93,4 +117,19 @@ export default function AdminDashboard() {
       </div>
     </div>
   );
-}
+};
+
+// ==========================================
+// MAIN ADMIN DASHBOARD (The Router)
+// ==========================================
+const AdminDashboard = () => {
+  return (
+    <div className="flex min-h-screen bg-gray-900 text-gray-100">
+      <main className="flex-1 p-8 overflow-y-auto">
+        <ExecutiveOverview />
+      </main>
+    </div>
+  );
+};
+
+export default AdminDashboard;
