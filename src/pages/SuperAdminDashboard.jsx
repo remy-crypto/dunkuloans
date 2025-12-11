@@ -11,32 +11,41 @@ export default function SuperAdminDashboard() {
     totalCount: 0,
     pendingCount: 0,
     settledCount: 0,
+    defaultCount: 0,
     investorCapital: 0,
     agentVolume: 0,
     agentCommissions: 0
   });
 
   const fetchData = async () => {
-    // Keep loading true only on first load to prevent flickering updates
-    if (loading) setLoading(true);
-    
-    // 1. Fetch Loans
+    // 1. Fetch Loans (to calculate volume, risk, and agent origination)
     const { data: loans } = await supabase.from("loans").select("*");
     
-    // 2. Fetch Collateral
+    // 2. Fetch Collateral (to calculate total secured value)
     const { data: collateral } = await supabase.from("collateral").select("estimated_value");
 
-    // 3. Fetch Investors
+    // 3. Fetch Investors (to calculate total capital pool)
     const { data: investors } = await supabase.from("investors").select("total_invested");
 
-    // 4. Fetch Agents
+    // 4. Fetch Agents (to calculate commissions paid)
     const { data: agents } = await supabase.from("agents").select("total_commission");
 
     if (loans) {
+      // Loan Status Calculations
       const active = loans.filter(l => l.status === 'active');
+      const pending = loans.filter(l => l.status === 'pending');
+      const settled = loans.filter(l => l.status === 'settled');
+      const defaulted = loans.filter(l => l.status === 'default');
+
+      // Volume Calculations
       const activeVol = active.reduce((sum, l) => sum + Number(l.amount), 0);
       const repayments = active.reduce((sum, l) => sum + Number(l.balance), 0);
       
+      // Agent Calculations: Sum of loans where an agent was involved
+      const agentLoans = loans.filter(l => l.agent_id !== null);
+      const agentOriginatedVol = agentLoans.reduce((sum, l) => sum + Number(l.amount), 0);
+
+      // Collateral & Investor Sums
       const totalCol = collateral ? collateral.reduce((sum, c) => sum + Number(c.estimated_value || 0), 0) : 0;
       const totalInv = investors ? investors.reduce((sum, i) => sum + Number(i.total_invested || 0), 0) : 0;
       const totalComm = agents ? agents.reduce((sum, a) => sum + Number(a.total_commission || 0), 0) : 0;
@@ -47,10 +56,11 @@ export default function SuperAdminDashboard() {
         upcomingRepayments: repayments,
         totalCount: loans.length,
         activeCount: active.length,
-        pendingCount: loans.filter(l => l.status === 'pending').length,
-        settledCount: loans.filter(l => l.status === 'settled').length,
+        pendingCount: pending.length,
+        settledCount: settled.length,
+        defaultCount: defaulted.length,
         investorCapital: totalInv,
-        agentVolume: activeVol * 0.4, // Estimated 40% origination via agents
+        agentVolume: agentOriginatedVol,
         agentCommissions: totalComm
       });
     }
@@ -60,15 +70,17 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     fetchData();
     
-    // Realtime Subscriptions
+    // Realtime Subscriptions for all relevant tables
     const sub1 = supabase.channel('super-loans').on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, fetchData).subscribe();
     const sub2 = supabase.channel('super-col').on('postgres_changes', { event: '*', schema: 'public', table: 'collateral' }, fetchData).subscribe();
     const sub3 = supabase.channel('super-inv').on('postgres_changes', { event: '*', schema: 'public', table: 'investors' }, fetchData).subscribe();
+    const sub4 = supabase.channel('super-agents').on('postgres_changes', { event: '*', schema: 'public', table: 'agents' }, fetchData).subscribe();
 
     return () => { 
       supabase.removeChannel(sub1); 
       supabase.removeChannel(sub2); 
       supabase.removeChannel(sub3); 
+      supabase.removeChannel(sub4); 
     };
   }, []);
 
@@ -77,10 +89,9 @@ export default function SuperAdminDashboard() {
     return `${(count / total) * 100}, 100`;
   };
 
-  if (loading) return <div className="p-10 text-center text-gray-500">Loading Console Data...</div>;
+  if (loading) return <div className="p-10 text-center text-gray-500">Loading System Data...</div>;
 
   return (
-    // Force Light Theme for this dashboard to match screenshot
     <div className="bg-gray-50 min-h-full p-8 text-gray-900 font-sans">
       
       {/* Header */}
@@ -173,28 +184,20 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
           <div className="h-64 relative w-full">
-             {/* Styled SVG Chart matching screenshot */}
+             {/* Styled SVG Chart */}
              <svg viewBox="0 0 500 150" className="w-full h-full overflow-visible">
-               {/* Grid Lines */}
                <line x1="0" y1="30" x2="500" y2="30" stroke="#f3f4f6" strokeWidth="1" />
                <line x1="0" y1="70" x2="500" y2="70" stroke="#f3f4f6" strokeWidth="1" />
                <line x1="0" y1="110" x2="500" y2="110" stroke="#f3f4f6" strokeWidth="1" />
 
-               {/* Blue Line (Revenue) */}
                <path d="M0,130 Q125,120 250,80 T500,40" fill="none" stroke="#0ea5e9" strokeWidth="3" />
-               {/* Red Line (Expenses) */}
                <path d="M0,140 Q125,138 250,135 T500,120" fill="none" stroke="#f43f5e" strokeWidth="3" />
              </svg>
              <div className="absolute bottom-0 w-full flex justify-between text-xs text-gray-400 mt-2 px-2">
                 <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
              </div>
-             {/* Y-Axis Labels (Absolute positioning for layout match) */}
              <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] text-gray-400 -ml-8 py-4">
-                <span>26000</span>
-                <span>19500</span>
-                <span>13000</span>
-                <span>6500</span>
-                <span>0</span>
+                <span>26000</span><span>19500</span><span>13000</span><span>6500</span><span>0</span>
              </div>
           </div>
         </div>
@@ -236,7 +239,6 @@ export default function SuperAdminDashboard() {
             <h2 className="text-4xl font-bold mb-2">K {stats.investorCapital.toLocaleString()}</h2>
             <p className="text-xs text-indigo-300">Generating K 1,200.00 projected annual yield for partners.</p>
           </div>
-          {/* Decorative Circle */}
           <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-indigo-600/30 rounded-full blur-2xl"></div>
         </div>
 
