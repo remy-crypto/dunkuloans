@@ -4,6 +4,9 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { supabase } from './lib/SupabaseClient';
 import Layout from './components/Layout';
 
+// --- NEW LANDING PAGE ---
+import LandingPage from './pages/LandingPage'; // <--- NEW IMPORT
+
 // --- PAGE IMPORTS ---
 import ClientDashboard from './pages/client/ClientDashboard';
 import CollateralSubmission from './pages/client/CollateralSubmission';
@@ -46,7 +49,7 @@ import TermsAndConditions from './pages/TermsAndConditions';
 import ActivityLog from './pages/ActivityLog';
 
 
-// --- ROLE DISPATCHER (FIXED FOR PARTNERS) ---
+// --- ROLE DISPATCHER ---
 const DashboardDispatcher = () => {
   const { user } = useAuth();
   const [role, setRole] = useState(null);
@@ -56,13 +59,8 @@ const DashboardDispatcher = () => {
     if (user) {
       supabase.from('profiles').select('role').eq('id', user.id).single()
         .then(({ data }) => {
-          // Default to borrower if role is missing
           let dbRole = data?.role || 'borrower';
-          
-          // Normalize
           if (dbRole === 'borrower') dbRole = 'client';
-          // 'partner', 'admin', 'super_admin' stay as is
-          
           setRole(dbRole);
           setLoading(false);
         });
@@ -71,12 +69,10 @@ const DashboardDispatcher = () => {
 
   if (loading) return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">Loading Portal...</div>;
 
-  // --- ROUTING LOGIC ---
-  if (role === 'partner') return <Navigate to="/partner" replace />; // <--- ADDED THIS
+  if (role === 'partner') return <Navigate to="/partner" replace />;
   if (role === 'client') return <Navigate to="/client" replace />;
   if (role === 'admin') return <Navigate to="/admin" replace />;
   if (role === 'super_admin') return <Navigate to="/admin" replace />;
-  if (role === 'investor') return <Navigate to="/investor" replace />;
   
   return <Navigate to="/client" replace />;
 };
@@ -101,15 +97,14 @@ const ProtectedRoute = ({ children, role }) => {
     }
   }, [user]);
 
-  if (loading || roleLoading) return <div className="bg-gray-900 min-h-screen text-white flex items-center justify-center">Checking Permissions...</div>;
+  if (loading || roleLoading) return <div className="bg-gray-900 min-h-screen text-white flex items-center justify-center">Checking...</div>;
   if (!user) return <Navigate to="/login" replace />;
 
-  // Permission Logic
   const isAuthorized = userRole === role || 
                        (role === 'admin' && (userRole === 'admin' || userRole === 'super_admin'));
 
   if (!isAuthorized) {
-    if (userRole === 'partner') return <Navigate to="/partner" replace />; // <--- ADDED FALLBACK
+    if (userRole === 'partner') return <Navigate to="/partner" replace />;
     if (userRole === 'client') return <Navigate to="/client" replace />;
     if (userRole === 'admin') return <Navigate to="/admin" replace />;
     if (userRole === 'super_admin') return <Navigate to="/admin" replace />;
@@ -124,7 +119,10 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<LoginSelection />} />
+          {/* --- PUBLIC ROUTES --- */}
+          {/* This is the new change: Root goes to Landing Page */}
+          <Route path="/" element={<LandingPage />} />
+          
           <Route path="/login" element={<LoginSelection />} />
           <Route path="/register" element={<ClientRegistration />} />
           <Route path="/terms" element={<TermsAndConditions />} />
@@ -132,7 +130,7 @@ export default function App() {
           {/* Logic to send user to correct dashboard */}
           <Route path="/dashboard" element={<DashboardDispatcher />} />
           
-          {/* --- CLIENT ROUTES --- */}
+          {/* --- PROTECTED ROUTES (Unchanged) --- */}
           <Route path="/client" element={<ProtectedRoute role="client"><Layout><ClientDashboard /></Layout></ProtectedRoute>} />
           <Route path="/client/submit" element={<ProtectedRoute role="client"><Layout><CollateralSubmission /></Layout></ProtectedRoute>} />
           <Route path="/client/apply" element={<ProtectedRoute role="client"><Layout><ApplyForLoan /></Layout></ProtectedRoute>} />
@@ -140,15 +138,6 @@ export default function App() {
           <Route path="/client/support" element={<ProtectedRoute role="client"><Layout><SupportPortal /></Layout></ProtectedRoute>} />
           <Route path="/client/activity" element={<ProtectedRoute role="client"><Layout><ActivityLog /></Layout></ProtectedRoute>} />
           
-          {/* --- PARTNER ROUTES --- */}
-          <Route path="/partner" element={<ProtectedRoute role="partner"><Layout><PartnerDashboard /></Layout></ProtectedRoute>} />
-          <Route path="/partner/referrals" element={<ProtectedRoute role="partner"><Layout><PartnerReferrals /></Layout></ProtectedRoute>} />
-          <Route path="/partner/earnings" element={<ProtectedRoute role="partner"><Layout><PartnerEarnings /></Layout></ProtectedRoute>} />
-          
-          {/* --- INVESTOR ROUTES --- */}
-          <Route path="/investor" element={<ProtectedRoute role="investor"><Layout><InvestorDashboard /></Layout></ProtectedRoute>} />
-
-          {/* --- ADMIN ROUTES --- */}
           <Route path="/admin" element={<ProtectedRoute role="admin"><Layout><AdminDashboard /></Layout></ProtectedRoute>} />
           <Route path="/admin/clients" element={<ProtectedRoute role="admin"><Layout><AdminClients /></Layout></ProtectedRoute>} />
           <Route path="/admin/investors" element={<ProtectedRoute role="admin"><Layout><AdminInvestors /></Layout></ProtectedRoute>} />
@@ -156,8 +145,6 @@ export default function App() {
           <Route path="/admin/kyc" element={<ProtectedRoute role="admin"><Layout><AdminKYC /></Layout></ProtectedRoute>} />
           <Route path="/admin/review" element={<ProtectedRoute role="admin"><Layout><AdminCollateral /></Layout></ProtectedRoute>} />
           <Route path="/admin/support" element={<ProtectedRoute role="admin"><Layout><AdminSupport /></Layout></ProtectedRoute>} />
-
-          {/* Admin Extras */}
           <Route path="/admin/staff" element={<ProtectedRoute role="admin"><Layout><AdminStaff /></Layout></ProtectedRoute>} />
           <Route path="/admin/claims" element={<ProtectedRoute role="admin"><Layout><AdminClaims /></Layout></ProtectedRoute>} />
           <Route path="/admin/monitoring" element={<ProtectedRoute role="admin"><Layout><AdminMonitoring /></Layout></ProtectedRoute>} />
@@ -171,6 +158,11 @@ export default function App() {
           <Route path="/admin/aml" element={<ProtectedRoute role="admin"><Layout><AdminAML /></Layout></ProtectedRoute>} />
           <Route path="/admin/payments" element={<ProtectedRoute role="admin"><Layout><AdminPayments /></Layout></ProtectedRoute>} />
           
+          <Route path="/partner" element={<ProtectedRoute role="partner"><Layout><PartnerDashboard /></Layout></ProtectedRoute>} />
+          <Route path="/partner/referrals" element={<ProtectedRoute role="partner"><Layout><PartnerReferrals /></Layout></ProtectedRoute>} />
+          <Route path="/partner/earnings" element={<ProtectedRoute role="partner"><Layout><PartnerEarnings /></Layout></ProtectedRoute>} />
+          <Route path="/investor" element={<ProtectedRoute role="investor"><Layout><InvestorDashboard /></Layout></ProtectedRoute>} />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
