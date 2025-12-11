@@ -5,6 +5,13 @@ import { supabase } from './lib/SupabaseClient';
 import Layout from './components/Layout';
 
 // --- PAGE IMPORTS ---
+
+// 1. Auth & Shared
+import LoginSelection from './pages/Login';
+import TermsAndConditions from './pages/TermsAndConditions';
+import ActivityLog from './pages/ActivityLog';
+
+// 2. Client (Borrower) Pages
 import ClientDashboard from './pages/client/ClientDashboard';
 import CollateralSubmission from './pages/client/CollateralSubmission';
 import ApplyForLoan from './pages/client/ApplyForLoan';
@@ -12,7 +19,7 @@ import ClientRegistration from './pages/Register';
 import ClientProfile from './pages/client/ClientProfile';
 import SupportPortal from './pages/SupportPortal';
 
-// Admin Pages
+// 3. Admin (Worker) Pages - Active
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminClients from './pages/admin/AdminClients'; 
 import AdminInvestors from './pages/admin/AdminInvestors';
@@ -21,22 +28,28 @@ import AdminKYC from './pages/admin/AdminKYC';
 import AdminCollateral from './pages/admin/AdminCollateral'; 
 import AdminSupport from './pages/admin/AdminSupport';
 
-// Super Admin / Future Pages
+// 4. Super Admin / Future Pages (The Missing Imports)
+import AdminLoanDetails from './pages/admin/AdminLoanDetails'; // <-- FIXED: Added this
 import AdminAgents from './pages/admin/AdminAgents';
 import AdminStaff from './pages/admin/AdminStaff';
+import AdminCompliance from './pages/admin/AdminCompliance';
+import AdminAML from './pages/admin/AdminAML';
+import AdminPayments from './pages/admin/AdminPayments';
 import AdminMonitoring from './pages/admin/AdminMonitoring';
-import AdminClaims from './pages/admin/AdminClaims';
+import AdminWorkersPad from './pages/admin/AdminWorkersPad';
 import AdminUploads from './pages/admin/AdminUploads';
 import AdminPLE from './pages/admin/AdminPLE';
 import AdminAuthorization from './pages/admin/AdminAuthorization';
-import AdminWorkersPad from './pages/admin/AdminWorkersPad';
+import AdminClaims from './pages/admin/AdminClaims';
 
-// Other
-import LoginSelection from './pages/Login';
-import TermsAndConditions from './pages/TermsAndConditions';
-import ActivityLog from './pages/ActivityLog';
+// 5. Partners & Investors
+import PartnerDashboard from './pages/partner/PartnerDashboard';
+import PartnerReferrals from './pages/partner/PartnerReferrals';
+import PartnerEarnings from './pages/partner/PartnerEarnings';
+import InvestorDashboard from './pages/investor/InvestorDashboard';
 
-// --- ROLE DISPATCHER (FIXED FOR SUPER ADMIN) ---
+
+// --- ROLE DISPATCHER ---
 const DashboardDispatcher = () => {
   const { user } = useAuth();
   const [role, setRole] = useState(null);
@@ -47,10 +60,11 @@ const DashboardDispatcher = () => {
       supabase.from('profiles').select('role').eq('id', user.id).single()
         .then(({ data }) => {
           const dbRole = data?.role || 'borrower';
-          // Normalize names
+          
+          // Normalize roles for routing
           if (dbRole === 'borrower') setRole('client');
           else if (dbRole === 'super_admin') setRole('super_admin');
-          else setRole('admin'); // 'agent' or 'admin' goes here
+          else setRole('admin'); 
           
           setLoading(false);
         });
@@ -59,10 +73,9 @@ const DashboardDispatcher = () => {
 
   if (loading) return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">Loading Portal...</div>;
 
-  // --- THE FIX: Handle Super Admin explicitly ---
   if (role === 'client') return <Navigate to="/client" replace />;
   if (role === 'admin') return <Navigate to="/admin" replace />;
-  if (role === 'super_admin') return <Navigate to="/admin" replace />; // Super Admin shares /admin route structure
+  if (role === 'super_admin') return <Navigate to="/admin" replace />; // Super Admin uses /admin routes
   
   return <Navigate to="/client" replace />;
 };
@@ -78,7 +91,11 @@ const ProtectedRoute = ({ children, role }) => {
       supabase.from('profiles').select('role').eq('id', user.id).single()
         .then(({ data }) => {
           const dbRole = data?.role || 'borrower';
-          setUserRole(dbRole === 'borrower' ? 'client' : dbRole);
+          
+          // Map DB role to Route permission
+          if (dbRole === 'borrower') setUserRole('client');
+          else setUserRole(dbRole); // 'admin' or 'super_admin' or 'agent'
+          
           setRoleLoading(false);
         });
     } else {
@@ -89,7 +106,6 @@ const ProtectedRoute = ({ children, role }) => {
   if (loading || roleLoading) return <div className="bg-gray-900 min-h-screen text-white flex items-center justify-center">Checking Permissions...</div>;
   if (!user) return <Navigate to="/login" replace />;
 
-  // Permission Logic
   const isAuthorized = userRole === role || 
                        (role === 'admin' && (userRole === 'admin' || userRole === 'super_admin'));
 
@@ -112,10 +128,10 @@ export default function App() {
           <Route path="/register" element={<ClientRegistration />} />
           <Route path="/terms" element={<TermsAndConditions />} />
 
-          {/* Dispatcher catches login redirect */}
+          {/* Logic to send user to correct dashboard */}
           <Route path="/dashboard" element={<DashboardDispatcher />} />
           
-          {/* --- CLIENT ROUTES --- */}
+          {/* --- CLIENT (BORROWER) ROUTES --- */}
           <Route path="/client" element={<ProtectedRoute role="client"><Layout><ClientDashboard /></Layout></ProtectedRoute>} />
           <Route path="/client/submit" element={<ProtectedRoute role="client"><Layout><CollateralSubmission /></Layout></ProtectedRoute>} />
           <Route path="/client/apply" element={<ProtectedRoute role="client"><Layout><ApplyForLoan /></Layout></ProtectedRoute>} />
@@ -123,11 +139,10 @@ export default function App() {
           <Route path="/client/support" element={<ProtectedRoute role="client"><Layout><SupportPortal /></Layout></ProtectedRoute>} />
           <Route path="/client/activity" element={<ProtectedRoute role="client"><Layout><ActivityLog /></Layout></ProtectedRoute>} />
           
-          {/* --- ADMIN & SUPER ADMIN ROUTES --- */}
-          {/* Main Dashboard (renders AdminDashboard or SuperAdminDashboard based on logic inside it) */}
+          {/* --- ADMIN ROUTES --- */}
           <Route path="/admin" element={<ProtectedRoute role="admin"><Layout><AdminDashboard /></Layout></ProtectedRoute>} />
           
-          {/* Specific Pages */}
+          {/* Active Features */}
           <Route path="/admin/clients" element={<ProtectedRoute role="admin"><Layout><AdminClients /></Layout></ProtectedRoute>} />
           <Route path="/admin/investors" element={<ProtectedRoute role="admin"><Layout><AdminInvestors /></Layout></ProtectedRoute>} />
           <Route path="/admin/underwriting" element={<ProtectedRoute role="admin"><Layout><AdminUnderwriting /></Layout></ProtectedRoute>} />
@@ -135,7 +150,7 @@ export default function App() {
           <Route path="/admin/review" element={<ProtectedRoute role="admin"><Layout><AdminCollateral /></Layout></ProtectedRoute>} />
           <Route path="/admin/support" element={<ProtectedRoute role="admin"><Layout><AdminSupport /></Layout></ProtectedRoute>} />
 
-          {/* Super Admin Specific Pages (Mapped to placeholders for now) */}
+          {/* Super Admin / Future Features */}
           <Route path="/admin/staff" element={<ProtectedRoute role="admin"><Layout><AdminStaff /></Layout></ProtectedRoute>} />
           <Route path="/admin/claims" element={<ProtectedRoute role="admin"><Layout><AdminClaims /></Layout></ProtectedRoute>} />
           <Route path="/admin/monitoring" element={<ProtectedRoute role="admin"><Layout><AdminMonitoring /></Layout></ProtectedRoute>} />
@@ -144,7 +159,17 @@ export default function App() {
           <Route path="/admin/ple" element={<ProtectedRoute role="admin"><Layout><AdminPLE /></Layout></ProtectedRoute>} />
           <Route path="/admin/authorization" element={<ProtectedRoute role="admin"><Layout><AdminAuthorization /></Layout></ProtectedRoute>} />
           <Route path="/admin/loans-details" element={<ProtectedRoute role="admin"><Layout><AdminLoanDetails /></Layout></ProtectedRoute>} />
+          <Route path="/admin/agents" element={<ProtectedRoute role="admin"><Layout><AdminAgents /></Layout></ProtectedRoute>} />
+          <Route path="/admin/compliance" element={<ProtectedRoute role="admin"><Layout><AdminCompliance /></Layout></ProtectedRoute>} />
+          <Route path="/admin/aml" element={<ProtectedRoute role="admin"><Layout><AdminAML /></Layout></ProtectedRoute>} />
+          <Route path="/admin/payments" element={<ProtectedRoute role="admin"><Layout><AdminPayments /></Layout></ProtectedRoute>} />
           
+          {/* Other Roles */}
+          <Route path="/partner" element={<ProtectedRoute role="partner"><Layout><PartnerDashboard /></Layout></ProtectedRoute>} />
+          <Route path="/partner/referrals" element={<ProtectedRoute role="partner"><Layout><PartnerReferrals /></Layout></ProtectedRoute>} />
+          <Route path="/partner/earnings" element={<ProtectedRoute role="partner"><Layout><PartnerEarnings /></Layout></ProtectedRoute>} />
+          <Route path="/investor" element={<ProtectedRoute role="investor"><Layout><InvestorDashboard /></Layout></ProtectedRoute>} />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
