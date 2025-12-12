@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/SupabaseClient";
 import { useAuth } from "../../context/AuthContext";
@@ -35,7 +35,7 @@ const products = [
   }
 ];
 
-// Mock Items for Item Loan (In real app, fetch from 'items' table)
+// Mock Items
 const gadgetItems = [
   { id: 1, name: "Samsung Galaxy A14", specs: "64GB, Black", price: 3500, img: "https://images.samsung.com/is/image/samsung/p6pim/za/a145fzkdafa/gallery/za-galaxy-a14-a145-sm-a145fzkdafa-thumb-536248906" },
   { id: 2, name: "iPhone 11 (Refurbished)", specs: "128GB, White", price: 6500, img: "https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP804/sp804-iphone11_2x.png" },
@@ -63,17 +63,22 @@ export default function ApplyLoan() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [months, setMonths] = useState(3);
 
-  // Business Uploads State (Mocking file selection)
-  const [files, setFiles] = useState({});
+  // Business Uploads State
+  const [files, setFiles] = useState({}); // Stores URLs
+  const [uploadingDoc, setUploadingDoc] = useState(null); // Tracks which doc is uploading
+  
+  // File Input Ref
+  const fileInputRef = useRef(null);
+  const [currentDocType, setCurrentDocType] = useState(null); // Tracks which button clicked
 
   // --- HANDLERS ---
   const handleSelectProduct = (product) => {
     setSelectedProduct(product);
     setStep(2);
-    // Reset specific states
     setAmount("");
     setGroupMembers([]);
     setSelectedItem(null);
+    setFiles({});
   };
 
   const handleAddMember = () => {
@@ -82,10 +87,41 @@ export default function ApplyLoan() {
     setNewMember({ name: "", nrc: "", phone: "", income: "", market: "", reason: "", address: "" });
   };
 
-  const handleFileSelect = (field) => {
-    // In a real app, this would open file dialog
-    // For UI demo, we simulate a file being "selected"
-    setFiles({ ...files, [field]: "document_scan.pdf" });
+  // 1. Trigger File Picker
+  const handleUploadClick = (docType) => {
+    setCurrentDocType(docType);
+    fileInputRef.current.click();
+  };
+
+  // 2. Handle File Selection & Upload
+  const handleFileChange = async (event) => {
+    const file = event.target.files[0];
+    if (!file || !currentDocType) return;
+
+    setUploadingDoc(currentDocType);
+
+    try {
+      const fileName = `${user.id}/${Date.now()}_${file.name}`;
+      const { data, error } = await supabase.storage.from("loan_docs").upload(fileName, file);
+
+      if (error) throw error;
+
+      // Get Public URL
+      const { data: urlData } = supabase.storage.from("loan_docs").getPublicUrl(fileName);
+      
+      // Update State
+      setFiles(prev => ({
+        ...prev,
+        [currentDocType]: urlData.publicUrl
+      }));
+
+    } catch (err) {
+      alert("Upload failed: " + err.message);
+    } finally {
+      setUploadingDoc(null);
+      // Reset input so same file can be selected again if needed
+      if(fileInputRef.current) fileInputRef.current.value = ""; 
+    }
   };
 
   const handleSubmit = async () => {
@@ -93,16 +129,16 @@ export default function ApplyLoan() {
     let finalAmount = amount;
     let finalDescription = description;
 
-    // Logic per loan type
     if (selectedProduct.id === "item") {
       if (!selectedItem) return alert("Please select an item");
       finalAmount = selectedItem.price;
       finalDescription = `Item Loan: ${selectedItem.name} (${selectedItem.specs})`;
     } else if (selectedProduct.id === "marketeer") {
-      // For marketeer, we save group info in description or a separate json column
       finalDescription = `Group Loan (${groupMembers.length} members): ` + JSON.stringify(groupMembers.map(m=>m.name));
     } else if (selectedProduct.id === "business") {
-      finalDescription = `Business Loan. Docs: ${Object.keys(files).join(", ")}`;
+      // Save uploaded file URLs in description (or a separate JSON column if available)
+      const fileSummary = Object.entries(files).map(([key, url]) => `${key}: ${url}`).join("\n");
+      finalDescription = `Business Loan.\nDocs:\n${fileSummary}`;
     }
 
     if (!finalAmount || Number(finalAmount) <= 0) {
@@ -148,9 +184,57 @@ export default function ApplyLoan() {
     }
   };
 
-  // --- RENDER HELPERS ---
+  // --- RENDER FORMS ---
   
-  // 1. MARKETEER FORM
+  // Business Form with Real Uploads
+  const renderBusinessForm = () => (
+    <div className="space-y-6">
+       <div>
+        <label className="block text-sm text-gray-400 mb-2">Requested Capital (ZMW)</label>
+        <input type="number" className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-indigo-500"
+          value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {["Registration", "Business Plan", "Financial Statements", "Tax Compliance", "Collateral Docs", "Personal Ids", "Bank Statements", "Project Proposal"].map(doc => (
+          <div key={doc} className="bg-gray-800 border border-gray-700 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-center hover:bg-gray-750 transition">
+            <p className="text-gray-300 text-sm font-medium mb-2">{doc}</p>
+            
+            {files[doc] ? (
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-xs text-green-500 font-bold">✓ Uploaded</span>
+                <a href={files[doc]} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 underline hover:text-indigo-300">View File</a>
+              </div>
+            ) : (
+              <button 
+                onClick={() => handleUploadClick(doc)}
+                disabled={uploadingDoc === doc}
+                className={`px-4 py-1.5 rounded text-xs font-bold transition flex items-center gap-2 ${uploadingDoc === doc ? 'bg-yellow-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
+              >
+                {uploadingDoc === doc ? (
+                  <>
+                    <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Uploading...
+                  </>
+                ) : (
+                  "↑ UPLOAD FILE"
+                )}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+      {/* Hidden Input for File Handling */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        className="hidden" 
+        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+      />
+    </div>
+  );
+
   const renderMarketeerForm = () => (
     <div className="space-y-6">
       <div>
@@ -172,7 +256,6 @@ export default function ApplyLoan() {
         </div>
         <button onClick={handleAddMember} className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded font-medium">+ Add Member</button>
         
-        {/* Member List */}
         {groupMembers.length > 0 && (
           <div className="mt-4 space-y-2">
             {groupMembers.map((m, i) => (
@@ -187,32 +270,6 @@ export default function ApplyLoan() {
     </div>
   );
 
-  // 2. BUSINESS FORM
-  const renderBusinessForm = () => (
-    <div className="space-y-6">
-       <div>
-        <label className="block text-sm text-gray-400 mb-2">Requested Capital (ZMW)</label>
-        <input type="number" className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-indigo-500"
-          value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {["Registration", "Business Plan", "Financial Statements", "Tax Compliance", "Collateral Docs", "Personal Ids", "Bank Statements", "Project Proposal"].map(doc => (
-          <div key={doc} className="bg-gray-800 border border-gray-700 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-center hover:bg-gray-750 transition">
-            <p className="text-gray-300 text-sm font-medium mb-2">{doc}</p>
-            <button 
-              onClick={() => handleFileSelect(doc)}
-              className={`px-4 py-1.5 rounded text-xs font-bold ${files[doc] ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
-            >
-              {files[doc] ? "Uploaded ✓" : "↑ UPLOAD FILE"}
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  // 3. ITEM LOAN FORM
   const renderItemForm = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
@@ -223,7 +280,6 @@ export default function ApplyLoan() {
             className={`cursor-pointer bg-white rounded-xl overflow-hidden border-2 transition-all ${selectedItem?.id === item.id ? 'border-indigo-500 shadow-lg shadow-indigo-500/20' : 'border-transparent opacity-80 hover:opacity-100'}`}
           >
             <div className="h-32 bg-gray-100 flex items-center justify-center">
-                {/* Mock Image */}
                 <img src={item.img} alt={item.name} className="h-full object-contain" />
             </div>
             <div className="p-3">
@@ -263,8 +319,6 @@ export default function ApplyLoan() {
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-100">
       <div className="flex-1 p-8 overflow-y-auto">
-        
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">
             {step === 1 ? "Apply for a Loan" : selectedProduct?.title}
@@ -292,10 +346,8 @@ export default function ApplyLoan() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Main Content */}
           <div className="lg:col-span-2">
             
-            {/* STEP 1: PRODUCT SELECTION */}
             {step === 1 && (
               <div className="space-y-4">
                 {products.map((p) => (
@@ -321,13 +373,11 @@ export default function ApplyLoan() {
               </div>
             )}
 
-            {/* STEP 2: DETAILS INPUT (Dynamic based on product) */}
             {step === 2 && (
               <div className="bg-gray-800 border border-gray-700 rounded-xl p-8">
                 {selectedProduct.id === 'marketeer' && renderMarketeerForm()}
                 {selectedProduct.id === 'business' && renderBusinessForm()}
                 {selectedProduct.id === 'item' && renderItemForm()}
-                {/* Fallback for Personal Loan (Simple Input) */}
                 {selectedProduct.id === 'personal' && (
                   <div className="space-y-6">
                     <div>
@@ -348,7 +398,6 @@ export default function ApplyLoan() {
               </div>
             )}
 
-            {/* STEP 3: REVIEW */}
             {step === 3 && (
               <div className="bg-gray-800 border border-gray-700 rounded-xl p-8">
                 <h3 className="text-xl font-bold text-white mb-6">Review Application</h3>
@@ -357,7 +406,6 @@ export default function ApplyLoan() {
                     <span className="text-gray-400">Product</span>
                     <span className="font-medium text-white">{selectedProduct?.title}</span>
                   </div>
-                  {/* Dynamic Review Info */}
                   {selectedProduct.id === 'item' ? (
                      <div className="flex justify-between border-b border-gray-800 pb-4">
                         <span className="text-gray-400">Item Selected</span>
@@ -375,6 +423,12 @@ export default function ApplyLoan() {
                         <span className="font-medium text-white">{groupMembers.length} Members</span>
                      </div>
                   )}
+                  {selectedProduct.id === 'business' && (
+                     <div className="flex justify-between border-b border-gray-800 pb-4">
+                        <span className="text-gray-400">Documents Attached</span>
+                        <span className="font-medium text-green-400">{Object.keys(files).length} Files</span>
+                     </div>
+                  )}
                 </div>
 
                 <div className="flex gap-4">
@@ -387,7 +441,6 @@ export default function ApplyLoan() {
             )}
           </div>
 
-          {/* Right Sidebar: Requirements */}
           <div>
             <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 sticky top-8">
               <div className="flex items-center gap-2 mb-4 text-indigo-400">
