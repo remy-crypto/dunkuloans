@@ -14,9 +14,8 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      await signIn(email, password);
-      // Logic for match code verification would go here in a real production app (backend verify)
-      // For now, we trust the auth and redirect.
+      // Pass matchCode to signIn function
+      await signIn(email, password, matchCode);
       navigate("/dashboard");
     } catch (err) {
       alert(err.message);
@@ -47,7 +46,7 @@ export default function Login() {
            </div>
         </div>
 
-        <h2 className="text-xl font-bold mb-2 text-center text-gray-900">Investor Login</h2>
+        <h2 className="text-xl font-bold mb-2 text-center text-gray-900">Portal Login</h2>
         <p className="text-center text-xs text-gray-500 mb-8">Enter your credentials to access the portal.</p>
         
         <form onSubmit={onSubmit} className="space-y-5">
@@ -82,18 +81,18 @@ export default function Login() {
           </div>
 
           <div>
-             <label className="block text-xs font-bold text-gray-700 mb-1">Investor Match Code</label>
+             <label className="block text-xs font-bold text-gray-700 mb-1">Investor / Admin Match Code</label>
              <div className="relative">
                <span className="absolute left-3 top-3 text-gray-400"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11.536 19.336A1.5 1.5 0 0110.233 20h-2.466a1.5 1.5 0 01-1.303-.703l-1.303-2.172a1.5 1.5 0 01-.157-1.348l.78-2.6a6 6 0 018.21-6.177z"></path></svg></span>
                <input 
                  className="w-full bg-white border border-gray-300 rounded-lg py-2.5 pl-10 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" 
-                 placeholder="Enter your assigned match code" 
+                 placeholder="Required for Admins" 
                  type="text"
                  value={matchCode}
                  onChange={(e) => setMatchCode(e.target.value)}
                />
              </div>
-             <p className="text-[10px] text-gray-400 mt-1">Required for investor verification.</p>
+             <p className="text-[10px] text-gray-400 mt-1">Required for worker verification.</p>
           </div>
 
           <div className="flex justify-between items-center text-xs">
