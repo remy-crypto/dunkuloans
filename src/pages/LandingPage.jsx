@@ -46,6 +46,15 @@ export default function LandingPage() {
     }
   ];
 
+  // Helper to scroll to section
+  const scrollToSection = (id) => {
+    setMobileMenuOpen(false); // Close mobile menu if open
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="font-sans text-gray-800 bg-white">
       
@@ -77,11 +86,12 @@ export default function LandingPage() {
           </div>
         </div>
 
+        {/* Desktop Menu - UPGRADED LINKS */}
         <div className="hidden lg:flex items-center gap-8 text-xs font-black text-gray-700 uppercase tracking-widest">
-          <a href="#" className="hover:text-blue-600 transition-colors">Loans</a>
-          <a href="#" className="hover:text-blue-600 transition-colors">Payments</a>
-          <a href="#" className="hover:text-blue-600 transition-colors">Investments</a>
-          <a href="#" className="hover:text-blue-600 transition-colors">About</a>
+          <button onClick={() => scrollToSection('products')} className="hover:text-blue-600 transition-colors">Loans</button>
+          <button onClick={() => scrollToSection('steps')} className="hover:text-blue-600 transition-colors">Payments</button>
+          <button onClick={() => scrollToSection('invest-promo')} className="hover:text-blue-600 transition-colors">Investments</button>
+          <button onClick={() => scrollToSection('about-footer')} className="hover:text-blue-600 transition-colors">About</button>
         </div>
 
         <div className="flex items-center gap-4">
@@ -97,12 +107,13 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - UPGRADED LINKS */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-white border-t p-6 flex flex-col gap-4 shadow-2xl absolute w-full z-40 animate-in slide-in-from-top">
-          <a href="#" className="font-bold text-gray-800 uppercase text-sm">Loans</a>
-          <a href="#" className="font-bold text-gray-800 uppercase text-sm">Payments</a>
-          <a href="#" className="font-bold text-gray-800 uppercase text-sm">Investments</a>
+          <button onClick={() => scrollToSection('products')} className="text-left font-bold text-gray-800 uppercase text-sm">Loans</button>
+          <button onClick={() => scrollToSection('steps')} className="text-left font-bold text-gray-800 uppercase text-sm">Payments</button>
+          <button onClick={() => scrollToSection('invest-promo')} className="text-left font-bold text-gray-800 uppercase text-sm">Investments</button>
+          <button onClick={() => scrollToSection('about-footer')} className="text-left font-bold text-gray-800 uppercase text-sm">About</button>
           <hr />
           <Link to="/register" className="w-full text-center py-3 bg-[#15803d] text-white font-bold rounded uppercase text-sm">Apply Now</Link>
         </div>
@@ -180,8 +191,8 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* --- PRODUCT GRID (AUTHENTIC ZAMBIAN IMAGES) --- */}
-      <div className="py-20 px-6 bg-gray-50">
+      {/* --- PRODUCT GRID (TARGET FOR 'LOANS' LINK) --- */}
+      <div id="products" className="py-20 px-6 bg-gray-50 scroll-mt-20">
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-black text-[#0e2a47] uppercase tracking-tighter">Our Products</h2>
@@ -217,8 +228,8 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* --- EASY STEPS --- */}
-      <div className="py-20 px-6 bg-white text-center border-t border-gray-100">
+      {/* --- EASY STEPS (TARGET FOR 'PAYMENTS' LINK) --- */}
+      <div id="steps" className="py-20 px-6 bg-white text-center border-t border-gray-100 scroll-mt-20">
         <div className="container mx-auto">
           <h2 className="text-3xl md:text-4xl font-extrabold text-[#0e2a47] mb-16">How It Works</h2>
           
@@ -242,8 +253,58 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* --- FOOTER --- */}
-      <footer className="bg-[#0e2a47] text-white pt-12 pb-6 px-6 border-t-8 border-[#b8860b]">
+      {/* --- APP PROMO (TARGET FOR 'INVESTMENTS' LINK) --- */}
+      <div id="invest-promo" className="bg-[#0e2a47] text-white py-20 px-6 relative overflow-hidden scroll-mt-20">
+        {/* Background elements */}
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-[#133457] rounded-l-[100px] hidden md:block"></div>
+
+        <div className="container mx-auto relative z-10 flex flex-col md:flex-row items-center gap-12">
+          
+          <div className="flex-1 space-y-6">
+             <h2 className="text-4xl md:text-5xl font-extrabold leading-tight">Money when <br/> you need it</h2>
+             <p className="text-lg text-gray-300 max-w-md">Manage payments, secure loans, and <strong>invest smartly</strong> with the Dunkuloans platform.</p>
+             <button 
+                onClick={() => navigate('/register')}
+                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg text-lg transition"
+             >
+               Get the app
+             </button>
+          </div>
+
+          <div className="flex-1 relative flex justify-center">
+             <div className="absolute top-10 left-10 bg-blue-600 p-4 rounded-full font-bold shadow-xl animate-bounce text-sm">Invest</div>
+             <div className="absolute bottom-20 right-10 bg-sky-500 p-4 rounded-full font-bold shadow-xl text-sm">Send Money</div>
+             
+             {/* Phone in Hand */}
+             <div className="relative">
+                <div className="w-[300px] h-[600px] bg-black rounded-[3rem] border-8 border-gray-800 shadow-2xl relative overflow-hidden">
+                  <div className="h-full w-full bg-white text-gray-900 p-4 pt-12">
+                     <div className="flex justify-between items-center mb-6">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                        <div className="text-xs text-gray-500">Good evening!</div>
+                     </div>
+                     <div className="bg-blue-600 text-white p-6 rounded-2xl mb-4 shadow-lg">
+                        <p className="text-sm opacity-90">Wallet Balance</p>
+                        <p className="text-3xl font-bold">K 9,846.90</p>
+                     </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-blue-50 p-4 rounded-xl text-center">
+                           <div className="font-bold text-blue-700">Borrow</div>
+                        </div>
+                        <div className="bg-orange-50 p-4 rounded-xl text-center">
+                           <div className="font-bold text-orange-700">Repay</div>
+                        </div>
+                     </div>
+                  </div>
+                </div>
+             </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* --- FOOTER (TARGET FOR 'ABOUT' LINK) --- */}
+      <footer id="about-footer" className="bg-[#0e2a47] text-white pt-12 pb-6 px-6 border-t-8 border-[#b8860b] scroll-mt-10">
         <div className="container mx-auto text-center">
           
           <div className="flex flex-col md:flex-row justify-center items-center gap-8 mb-8 text-sm md:text-base">
