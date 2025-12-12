@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   Menu, X, Facebook, Twitter, Instagram, Linkedin, Smartphone, 
-  CheckCircle, Briefcase, ShoppingBag, Users, User, Phone, Mail, Globe, ArrowRight
+  Phone, Mail, Globe
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -18,26 +18,30 @@ export default function LandingPage() {
   const totalRepayment = amount * (1 + (interestRate * months));
   const monthlyRepayment = totalRepayment / months;
 
-  // --- PRODUCT DATA (MATCHING FLYER) ---
+  // --- PRODUCT DATA (ZAMBIAN CONTEXT IMAGES) ---
   const products = [
     {
       title: "COLLATERAL BASED LOANS",
-      image: "https://images.unsplash.com/photo-1573164574572-cb89e39749b4?q=80&w=800&auto=format&fit=crop", // Black professional handshake
+      // Image: Handshake/Deal over assets
+      image: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=800&auto=format&fit=crop", 
       desc: "Secure funding against your valuable assets with speed."
     },
     {
       title: "MARKETEERS LOANS",
-      image: "https://images.unsplash.com/photo-1543083477-4f7f44d77d1f?q=80&w=800&auto=format&fit=crop", // African market seller
+      // Image: Woman in African market with produce (Authentic Zambian context)
+      image: "https://images.unsplash.com/photo-1607083206968-13611e3d76db?q=80&w=800&auto=format&fit=crop", 
       desc: "Empowering small scale traders to grow their stock daily."
     },
     {
       title: "ITEM LOANS",
-      image: "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=800&auto=format&fit=crop", // Black family/couple with electronics
+      // Image: Happy person with gadget/phone
+      image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop", 
       desc: "Get the latest gadgets and appliances on flexible credit."
     },
     {
       title: "BUSINESS LOANS",
-      image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=800&auto=format&fit=crop", // Black business team
+      // Image: Local entrepreneurs discussing plans
+      image: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=800&auto=format&fit=crop", 
       desc: "Scalable capital for registered business entities."
     }
   ];
@@ -110,13 +114,13 @@ export default function LandingPage() {
         
         <div className="container mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
           
-          {/* Exact Flyer-Style Hero Image */}
+          {/* Hero Image - Transaction/Loan Handover Context */}
           <div className="hidden lg:block relative">
              <div className="absolute -inset-2 bg-[#b8860b] rounded-lg opacity-20 blur-lg"></div>
              <div className="border-4 border-white rounded-lg shadow-2xl overflow-hidden">
                 <img 
-                  src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=1000&auto=format&fit=crop" 
-                  alt="Business Meeting" 
+                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1000&auto=format&fit=crop" 
+                  alt="Loan Disbursement" 
                   className="w-full h-[450px] object-cover"
                 />
              </div>
@@ -176,7 +180,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* --- PRODUCT GRID (EXACT FLYER MATCH) --- */}
+      {/* --- PRODUCT GRID (ZAMBIAN CONTEXT) --- */}
       <div className="py-20 px-6 bg-gray-50">
         <div className="container mx-auto">
           <div className="text-center mb-16">
@@ -212,49 +216,60 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* --- FOOTER (EXACT CONTACT MATCH) --- */}
-      <footer className="bg-[#0e2a47] text-white pt-16 pb-8 px-6 border-t-8 border-[#b8860b]">
+      {/* --- EASY STEPS --- */}
+      <div className="py-20 px-6 bg-white text-center border-t border-gray-100">
         <div className="container mx-auto">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-[#0e2a47] mb-16">How It Works</h2>
           
-          <div className="grid lg:grid-cols-2 gap-12 items-center mb-12 border-b border-white/10 pb-12">
-             <div className="space-y-4">
-                <div className="text-3xl font-black tracking-tighter">
-                  DUNKU BUSINESS <span className="text-[#b8860b]">SOLUTIONS</span>
-                </div>
-                <p className="text-sm text-gray-400 max-w-md leading-relaxed">
-                  We provide efficient financial solutions to help you achieve your dreams. Your ideal home filled with Hope starts with the right partner.
-                </p>
+          <div className="grid md:grid-cols-3 gap-12">
+            <div className="flex flex-col items-center">
+              <div className="h-16 w-16 bg-[#b8860b] text-white rounded-full flex items-center justify-center mb-4 font-bold text-2xl shadow-lg">1</div>
+              <h3 className="text-xl font-bold text-[#0e2a47]">Easy Application</h3>
+              <p className="text-gray-500 mt-2 max-w-xs">Apply right here on our website or visit our offices.</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="h-16 w-16 bg-[#b8860b] text-white rounded-full flex items-center justify-center mb-4 font-bold text-2xl shadow-lg">2</div>
+              <h3 className="text-xl font-bold text-[#0e2a47]">Flexible Options</h3>
+              <p className="text-gray-500 mt-2 max-w-xs">Select type of loan and choose a plan that works for you.</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="h-16 w-16 bg-[#b8860b] text-white rounded-full flex items-center justify-center mb-4 font-bold text-2xl shadow-lg">3</div>
+              <h3 className="text-xl font-bold text-[#0e2a47]">Smooth Disbursement</h3>
+              <p className="text-gray-500 mt-2 max-w-xs">Once approved, funds are sent to your mobile money or account.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* --- FOOTER (EXACT CONTACT MATCH) --- */}
+      <footer className="bg-[#0e2a47] text-white pt-12 pb-6 px-6 border-t-8 border-[#b8860b]">
+        <div className="container mx-auto text-center">
+          
+          <div className="flex flex-col md:flex-row justify-center items-center gap-8 mb-8 text-sm md:text-base">
+             <div className="flex items-center gap-3">
+                <Globe className="w-5 h-5 text-[#b8860b]" />
+                <span className="font-bold tracking-wide">www.dunkufunds.com</span>
              </div>
-             
-             <div className="grid sm:grid-cols-2 gap-8">
-                <div className="space-y-3">
-                   <p className="text-[10px] font-black text-[#b8860b] uppercase tracking-[0.3em]">Website</p>
-                   <div className="flex items-center gap-2 text-sm font-bold">
-                      <Globe className="w-4 h-4 text-[#b8860b]" />
-                      <span>www.dunkufunds.com</span>
-                   </div>
-                </div>
-                <div className="space-y-3">
-                   <p className="text-[10px] font-black text-[#b8860b] uppercase tracking-[0.3em]">Email</p>
-                   <div className="flex items-center gap-2 text-sm font-bold break-all">
-                      <Mail className="w-4 h-4 text-[#b8860b]" />
-                      <span>dunkubusinesssolutionsltd@gmail.com</span>
-                   </div>
-                </div>
+             <div className="hidden md:block text-[#b8860b]">|</div>
+             <div className="flex items-center gap-3">
+                <Mail className="w-5 h-5 text-[#b8860b]" />
+                <span className="font-bold tracking-wide">dunkubusinesssolutionsltd@gmail.com</span>
+             </div>
+             <div className="hidden md:block text-[#b8860b]">|</div>
+             <div className="flex items-center gap-3">
+                <Phone className="w-5 h-5 text-[#b8860b]" />
+                <span className="font-bold tracking-wide">0776430780 | 0778289080</span>
              </div>
           </div>
 
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex gap-4">
-               <a href="#" className="p-2 bg-white/5 rounded hover:bg-[#b8860b] transition"><Facebook className="w-5 h-5" /></a>
-               <a href="#" className="p-2 bg-white/5 rounded hover:bg-[#b8860b] transition"><Twitter className="w-5 h-5" /></a>
-               <a href="#" className="p-2 bg-white/5 rounded hover:bg-[#b8860b] transition"><Instagram className="w-5 h-5" /></a>
-               <a href="#" className="p-2 bg-white/5 rounded hover:bg-[#b8860b] transition"><Linkedin className="w-5 h-5" /></a>
-            </div>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-              © 2025 Dunku Business Solutions Ltd. All rights reserved.
-            </p>
+          <div className="flex justify-center gap-6 mb-8">
+            <Facebook className="w-6 h-6 text-gray-400 hover:text-white cursor-pointer" />
+            <Linkedin className="w-6 h-6 text-gray-400 hover:text-white cursor-pointer" />
+            <Instagram className="w-6 h-6 text-gray-400 hover:text-white cursor-pointer" />
+            <Twitter className="w-6 h-6 text-gray-400 hover:text-white cursor-pointer" />
           </div>
+
+          <p className="text-xs text-gray-500">© 2025 Dunkuloans. All rights reserved.</p>
         </div>
       </footer>
 
