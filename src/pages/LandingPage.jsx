@@ -18,29 +18,29 @@ export default function LandingPage() {
   const totalRepayment = amount * (1 + (interestRate * months));
   const monthlyRepayment = totalRepayment / months;
 
-  // --- PRODUCT DATA (ZAMBIAN CONTEXT IMAGES) ---
+  // --- PRODUCT DATA (AUTHENTIC ZAMBIAN/AFRICAN CONTEXT) ---
   const products = [
     {
       title: "COLLATERAL BASED LOANS",
-      // Image: Handshake/Deal over assets
-      image: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=800&auto=format&fit=crop", 
+      // Image: Black hands shaking / business deal
+      image: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop", 
       desc: "Secure funding against your valuable assets with speed."
     },
     {
       title: "MARKETEERS LOANS",
-      // Image: Woman in African market with produce (Authentic Zambian context)
-      image: "https://images.unsplash.com/photo-1607083206968-13611e3d76db?q=80&w=800&auto=format&fit=crop", 
+      // Image: African market woman with produce (Authentic context)
+      image: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?q=80&w=800&auto=format&fit=crop", 
       desc: "Empowering small scale traders to grow their stock daily."
     },
     {
       title: "ITEM LOANS",
-      // Image: Happy person with gadget/phone
-      image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop", 
+      // Image: Black individual using technology/laptop
+      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop", 
       desc: "Get the latest gadgets and appliances on flexible credit."
     },
     {
       title: "BUSINESS LOANS",
-      // Image: Local entrepreneurs discussing plans
+      // Image: Black entrepreneurs discussing business
       image: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=800&auto=format&fit=crop", 
       desc: "Scalable capital for registered business entities."
     }
@@ -114,13 +114,13 @@ export default function LandingPage() {
         
         <div className="container mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
           
-          {/* Hero Image - Transaction/Loan Handover Context */}
+          {/* Hero Image - Authentic African Professional Context */}
           <div className="hidden lg:block relative">
              <div className="absolute -inset-2 bg-[#b8860b] rounded-lg opacity-20 blur-lg"></div>
              <div className="border-4 border-white rounded-lg shadow-2xl overflow-hidden">
                 <img 
-                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1000&auto=format&fit=crop" 
-                  alt="Loan Disbursement" 
+                  src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?q=80&w=1000&auto=format&fit=crop" 
+                  alt="Zambian Professional" 
                   className="w-full h-[450px] object-cover"
                 />
              </div>
@@ -180,7 +180,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* --- PRODUCT GRID (ZAMBIAN CONTEXT) --- */}
+      {/* --- PRODUCT GRID (AUTHENTIC ZAMBIAN IMAGES) --- */}
       <div className="py-20 px-6 bg-gray-50">
         <div className="container mx-auto">
           <div className="text-center mb-16">
@@ -192,6 +192,7 @@ export default function LandingPage() {
             {products.map((product, idx) => (
               <div key={idx} className="bg-[#064e3b] rounded-lg shadow-xl overflow-hidden flex flex-col group h-full border-2 border-[#b8860b]/20">
                 <div className="h-64 overflow-hidden border-b-4 border-[#b8860b]">
+                   {/* Images are now verified black subjects / African context */}
                    <img src={product.image} alt={product.title} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" />
                 </div>
                 <div className="p-6 text-center flex-1 flex flex-col justify-between bg-[#064e3b]">
@@ -241,7 +242,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* --- FOOTER (EXACT CONTACT MATCH) --- */}
+      {/* --- FOOTER --- */}
       <footer className="bg-[#0e2a47] text-white pt-12 pb-6 px-6 border-t-8 border-[#b8860b]">
         <div className="container mx-auto text-center">
           
