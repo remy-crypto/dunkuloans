@@ -21,20 +21,40 @@ const ClientDashboard = () => {
   const proofInputRef = useRef(null);
   const smsInputRef = useRef(null);
 
-  const NETWORKS = {
-      MTN: { name: 'MTN MoMo', number: '096 123 4567', color: 'bg-yellow-400 text-yellow-900', border: 'border-yellow-400' },
-      Airtel: { name: 'Airtel Money', number: '097 123 4567', color: 'bg-red-600 text-white', border: 'border-red-600' },
-      Zamtel: { name: 'Zamtel Money', number: '095 123 4567', color: 'bg-green-600 text-white', border: 'border-green-600' }
-  };
+  // --- DYNAMIC NETWORKS STATE ---
+  const [networks, setNetworks] = useState({
+      MTN: { name: 'MTN MoMo', number: 'Loading...', color: 'bg-yellow-400 text-yellow-900', border: 'border-yellow-400', account: 'Loading...' },
+      Airtel: { name: 'Airtel Money', number: 'Loading...', color: 'bg-red-600 text-white', border: 'border-red-600', account: 'Loading...' },
+      Zamtel: { name: 'Zamtel Money', number: 'Loading...', color: 'bg-green-600 text-white', border: 'border-green-600', account: 'Loading...' }
+  });
 
   useEffect(() => {
     fetchData();
-    // Realtime subscription for loans and collateral updates
+    fetchPaymentSettings(); // <--- Fetch numbers from DB
+    
+    // Realtime subscriptions
     const subLoans = supabase.channel('client-loans').on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, fetchData).subscribe();
     const subCol = supabase.channel('client-col').on('postgres_changes', { event: '*', schema: 'public', table: 'collateral' }, fetchData).subscribe();
-
+    
     return () => { supabase.removeChannel(subLoans); supabase.removeChannel(subCol); };
   }, []);
+
+  // --- FETCH PAYMENT SETTINGS ---
+  const fetchPaymentSettings = async () => {
+    const { data, error } = await supabase.from('payment_settings').select('*');
+    if (!error && data) {
+      setNetworks(prev => {
+        const updated = { ...prev };
+        data.forEach(setting => {
+          if (updated[setting.network]) {
+            updated[setting.network].number = setting.phone_number;
+            updated[setting.network].account = setting.account_name;
+          }
+        });
+        return updated;
+      });
+    }
+  };
 
   const fetchData = async () => {
     // setLoading(true); // Don't block UI on refresh
@@ -59,7 +79,6 @@ const ClientDashboard = () => {
   // Stats
   const activeLoans = loans.filter(l => l.status === 'active');
   const totalPrincipal = activeLoans.reduce((sum, l) => sum + Number(l.amount), 0);
-  // Using total_repayment if available, else calculate standard 40% interest
   const totalRepaymentVal = activeLoans.reduce((sum, l) => sum + (Number(l.total_repayment) || Number(l.amount) * 1.4), 0);
   const totalBalance = activeLoans.reduce((sum, l) => sum + (Number(l.balance) || 0), 0); 
   const totalInterest = totalRepaymentVal - totalPrincipal;
@@ -264,7 +283,7 @@ const ClientDashboard = () => {
                                   <div className="flex justify-between items-start">
                                       <h4 className="font-bold text-gray-900 text-sm">{item.description}</h4>
                                       <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold uppercase">
-                                          APPROVED
+                                          {item.status.replace('_', ' ')}
                                       </span>
                                   </div>
                                   <p className="text-xs text-gray-500 mt-1">Electronics • Est. K {item.estimated_value}</p>
@@ -301,20 +320,20 @@ const ClientDashboard = () => {
                                   <p className="text-sm text-gray-500">Choose the provider you will use to send the funds.</p>
                               </div>
                               <div className="grid grid-cols-3 gap-4">
-                                  {Object.keys(NETWORKS).map(net => (
+                                  {Object.keys(networks).map(net => (
                                       <button key={net} onClick={() => setSelectedNetwork(net)} className={`p-6 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all ${selectedNetwork === net ? `border-indigo-500 bg-indigo-50 shadow-md transform scale-105` : 'border-gray-100 hover:border-gray-300'}`}>
-                                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shadow-sm ${NETWORKS[net].color}`}>{net[0]}</div>
-                                          <span className="text-sm font-bold text-gray-700">{NETWORKS[net].name}</span>
+                                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shadow-sm ${networks[net].color.split(' ')[0]}`}>{net[0]}</div>
+                                          <span className="text-sm font-bold text-gray-700">{networks[net].name}</span>
                                       </button>
                                   ))}
                               </div>
                               <div className="flex flex-col md:flex-row items-center gap-6 bg-gray-50 p-6 rounded-2xl border border-gray-100">
                                   <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
-                                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=tel:${NETWORKS[selectedNetwork].number}`} alt="QR" className="w-32 h-32" />
+                                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=tel:${networks[selectedNetwork].number}`} alt="QR" className="w-32 h-32" />
                                   </div>
                                   <div className="text-left space-y-2">
-                                      <div><p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Official Repayment Number</p><p className="text-2xl font-mono font-bold text-gray-900">{NETWORKS[selectedNetwork].number}</p></div>
-                                      <div><p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Account Name</p><p className="text-sm font-bold text-gray-700">DunkuLoans Ltd</p></div>
+                                      <div><p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Official Repayment Number</p><p className="text-2xl font-mono font-bold text-gray-900">{networks[selectedNetwork].number}</p></div>
+                                      <div><p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Account Name</p><p className="text-sm font-bold text-gray-700">{networks[selectedNetwork].account}</p></div>
                                       <div className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded text-xs font-mono inline-block">Ref: REF-{selectedLoan.id.slice(0,6)}</div>
                                   </div>
                               </div>
