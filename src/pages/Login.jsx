@@ -31,7 +31,7 @@ export default function Login() {
       <div className="text-center mb-8">
         <h1 className="text-4xl font-normal text-[#0e2a47]">DUNKU BUSINESS</h1>
         <p className="text-xs font-bold tracking-[0.3em] text-[#0e2a47] mt-1">SOLUTIONS LTD</p>
-        <p className="text-green-700 text-sm mt-3 font-medium">Your idea home field with Hope</p>
+        <p className="text-green-700 text-sm mt-3 font-medium">Your ideal Home Filled with Hope</p>
         <p className="text-gray-500 text-xs mt-6">Secure, AI-powered collateral loans at your fingertips.</p>
       </div>
 
