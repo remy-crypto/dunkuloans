@@ -47,7 +47,7 @@ export default function LandingPage() {
              <div className="text-xs font-bold text-gray-600 tracking-[0.2em] mt-0.5">
                SOLUTIONS LTD
              </div>
-             <div className="text-[10px] font-script text-[#b8860b] mt-1 italic font-medium">
+             <div className="text-[10px] font-serif text-[#b8860b] mt-1 italic font-medium">
                your ideal home filled with Hope
              </div>
           </div>
@@ -98,7 +98,7 @@ export default function LandingPage() {
         
         <div className="container mx-auto px-6 grid md:grid-cols-2 gap-10 items-center relative z-10 py-12">
           
-          {/* Hero Image */}
+          {/* Hero Image - Business Handshake to match flyer vibe */}
           <div className="hidden md:block relative">
              <div className="absolute -inset-4 bg-[#b8860b] rounded-2xl opacity-20 blur-xl"></div>
              <img 
@@ -134,8 +134,8 @@ export default function LandingPage() {
 
             <div className="bg-[#f0fdf4] p-4 rounded border border-green-200 mb-6">
               <div className="flex justify-between text-sm mb-2 text-gray-600"><span>Service Fee</span><span>K {serviceFee.toFixed(2)}</span></div>
-              <div className="flex justify-between text-sm mb-2 text-[#15803d] font-bold"><span>You Receive</span><span>K {(amount - serviceFee).toFixed(2)}</span></div>
-              <div className="flex justify-between text-lg mb-1 text-gray-900 font-extrabold border-t border-green-200 pt-2"><span>Monthly Pay</span><span>K {monthlyRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</span></div>
+              <div className="flex justify-between text-sm mb-2 text-gray-900 font-bold"><span>You Receive</span><span>K {(amount - serviceFee).toFixed(2)}</span></div>
+              <div className="flex justify-between text-lg mb-1 text-[#15803d] font-extrabold border-t border-green-200 pt-2"><span>Monthly Pay</span><span>K {monthlyRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</span></div>
             </div>
 
             <button 
@@ -148,64 +148,64 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* --- LOAN CATEGORIES (Matches Flyer) --- */}
+      {/* --- LOAN CATEGORIES (Matches Flyer Exactly) --- */}
       <div className="py-20 px-6 bg-gray-50">
         <div className="container mx-auto">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-[#0e2a47] text-center mb-16 uppercase">Our Loan Products</h2>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-[#0e2a47] text-center mb-16 uppercase tracking-tight">Our Loan Products</h2>
           
           <div className="grid md:grid-cols-4 gap-6">
             
             {/* 1. COLLATERAL BASED LOANS */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition border-b-8 border-[#15803d] group">
-              <div className="h-48 bg-gray-200 relative overflow-hidden">
+            <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition border-b-8 border-[#15803d] group flex flex-col h-full">
+              <div className="h-56 bg-gray-200 relative overflow-hidden">
                 <img src="https://images.unsplash.com/photo-1556742049-0cfed4f7a07d?auto=format&fit=crop&w=600&q=80" alt="Collateral" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition"></div>
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition"></div>
               </div>
-              <div className="p-6 text-center">
+              <div className="p-6 text-center flex-1 flex flex-col justify-between">
                 <h3 className="text-lg font-extrabold text-[#0e2a47] uppercase leading-tight mb-4">Collateral <br/> Based Loans</h3>
-                <Link to="/register" className="inline-block px-6 py-2 bg-[#b8860b] text-white text-xs font-bold uppercase tracking-wider rounded hover:bg-[#9a7009] transition">
+                <Link to="/register" className="inline-block px-6 py-2 bg-[#b8860b] text-white text-xs font-bold uppercase tracking-wider rounded hover:bg-[#9a7009] transition w-full">
                   Apply Now
                 </Link>
               </div>
             </div>
 
             {/* 2. MARKETEERS LOANS */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition border-b-8 border-[#15803d] group">
-              <div className="h-48 bg-gray-200 relative overflow-hidden">
+            <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition border-b-8 border-[#15803d] group flex flex-col h-full">
+              <div className="h-56 bg-gray-200 relative overflow-hidden">
                 <img src="https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?auto=format&fit=crop&w=600&q=80" alt="Marketeer" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition"></div>
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition"></div>
               </div>
-              <div className="p-6 text-center">
+              <div className="p-6 text-center flex-1 flex flex-col justify-between">
                 <h3 className="text-lg font-extrabold text-[#0e2a47] uppercase leading-tight mb-4">Marketeers <br/> Loans</h3>
-                <Link to="/register" className="inline-block px-6 py-2 bg-[#b8860b] text-white text-xs font-bold uppercase tracking-wider rounded hover:bg-[#9a7009] transition">
+                <Link to="/register" className="inline-block px-6 py-2 bg-[#b8860b] text-white text-xs font-bold uppercase tracking-wider rounded hover:bg-[#9a7009] transition w-full">
                   Apply Now
                 </Link>
               </div>
             </div>
 
             {/* 3. ITEM LOANS */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition border-b-8 border-[#15803d] group">
-              <div className="h-48 bg-gray-200 relative overflow-hidden">
+            <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition border-b-8 border-[#15803d] group flex flex-col h-full">
+              <div className="h-56 bg-gray-200 relative overflow-hidden">
                 <img src="https://images.unsplash.com/photo-1542393545-facac70508bc?auto=format&fit=crop&w=600&q=80" alt="Items" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition"></div>
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition"></div>
               </div>
-              <div className="p-6 text-center">
+              <div className="p-6 text-center flex-1 flex flex-col justify-between">
                 <h3 className="text-lg font-extrabold text-[#0e2a47] uppercase leading-tight mb-4">Item <br/> Loans</h3>
-                <Link to="/register" className="inline-block px-6 py-2 bg-[#b8860b] text-white text-xs font-bold uppercase tracking-wider rounded hover:bg-[#9a7009] transition">
+                <Link to="/register" className="inline-block px-6 py-2 bg-[#b8860b] text-white text-xs font-bold uppercase tracking-wider rounded hover:bg-[#9a7009] transition w-full">
                   Apply Now
                 </Link>
               </div>
             </div>
 
             {/* 4. BUSINESS LOANS */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition border-b-8 border-[#15803d] group">
-              <div className="h-48 bg-gray-200 relative overflow-hidden">
+            <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-2xl transition border-b-8 border-[#15803d] group flex flex-col h-full">
+              <div className="h-56 bg-gray-200 relative overflow-hidden">
                 <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=600&q=80" alt="Business" className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition"></div>
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition"></div>
               </div>
-              <div className="p-6 text-center">
+              <div className="p-6 text-center flex-1 flex flex-col justify-between">
                 <h3 className="text-lg font-extrabold text-[#0e2a47] uppercase leading-tight mb-4">Business <br/> Loans</h3>
-                <Link to="/register" className="inline-block px-6 py-2 bg-[#b8860b] text-white text-xs font-bold uppercase tracking-wider rounded hover:bg-[#9a7009] transition">
+                <Link to="/register" className="inline-block px-6 py-2 bg-[#b8860b] text-white text-xs font-bold uppercase tracking-wider rounded hover:bg-[#9a7009] transition w-full">
                   Apply Now
                 </Link>
               </div>
@@ -222,17 +222,17 @@ export default function LandingPage() {
           
           <div className="grid md:grid-cols-3 gap-12">
             <div className="flex flex-col items-center">
-              <div className="h-16 w-16 bg-blue-50 text-[#0e2a47] rounded-full flex items-center justify-center mb-4 border-2 border-[#0e2a47] font-bold text-2xl">1</div>
+              <div className="h-16 w-16 bg-[#b8860b] text-white rounded-full flex items-center justify-center mb-4 font-bold text-2xl shadow-lg">1</div>
               <h3 className="text-xl font-bold text-[#0e2a47]">Easy Application</h3>
               <p className="text-gray-500 mt-2 max-w-xs">Apply right here on our website or visit our offices.</p>
             </div>
             <div className="flex flex-col items-center">
-              <div className="h-16 w-16 bg-blue-50 text-[#0e2a47] rounded-full flex items-center justify-center mb-4 border-2 border-[#0e2a47] font-bold text-2xl">2</div>
+              <div className="h-16 w-16 bg-[#b8860b] text-white rounded-full flex items-center justify-center mb-4 font-bold text-2xl shadow-lg">2</div>
               <h3 className="text-xl font-bold text-[#0e2a47]">Flexible Options</h3>
               <p className="text-gray-500 mt-2 max-w-xs">Select type of loan and choose a plan that works for you.</p>
             </div>
             <div className="flex flex-col items-center">
-              <div className="h-16 w-16 bg-blue-50 text-[#0e2a47] rounded-full flex items-center justify-center mb-4 border-2 border-[#0e2a47] font-bold text-2xl">3</div>
+              <div className="h-16 w-16 bg-[#b8860b] text-white rounded-full flex items-center justify-center mb-4 font-bold text-2xl shadow-lg">3</div>
               <h3 className="text-xl font-bold text-[#0e2a47]">Smooth Disbursement</h3>
               <p className="text-gray-500 mt-2 max-w-xs">Once approved, funds are sent to your mobile money or account.</p>
             </div>
@@ -253,6 +253,11 @@ export default function LandingPage() {
              <div className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-[#b8860b]" />
                 <span className="font-bold tracking-wide">dunkubusinesssolutionsltd@gmail.com</span>
+             </div>
+             <div className="hidden md:block text-[#b8860b]">|</div>
+             <div className="flex items-center gap-3">
+                <Phone className="w-5 h-5 text-[#b8860b]" />
+                <span className="font-bold tracking-wide">0776430780 | 0778289080</span>
              </div>
           </div>
 
