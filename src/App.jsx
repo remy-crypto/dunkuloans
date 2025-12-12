@@ -14,6 +14,7 @@ import ApplyForLoan from './pages/client/ApplyForLoan';
 import ClientRegistration from './pages/Register';
 import ClientProfile from './pages/client/ClientProfile';
 import SupportPortal from './pages/SupportPortal';
+import BecomePartner from './pages/client/BecomePartner'; // <--- ADDED IMPORT
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -51,7 +52,6 @@ import ActivityLog from './pages/ActivityLog';
 
 
 // --- ROLE DISPATCHER ---
-// Checks role on login and redirects to the correct portal
 const DashboardDispatcher = () => {
   const { user } = useAuth();
   const [role, setRole] = useState(null);
@@ -139,6 +139,9 @@ export default function App() {
           <Route path="/client/profile" element={<ProtectedRoute role="client"><Layout><ClientProfile /></Layout></ProtectedRoute>} />
           <Route path="/client/support" element={<ProtectedRoute role="client"><Layout><SupportPortal /></Layout></ProtectedRoute>} />
           <Route path="/client/activity" element={<ProtectedRoute role="client"><Layout><ActivityLog /></Layout></ProtectedRoute>} />
+          
+          {/* FIXED: Added the Join Network Route */}
+          <Route path="/client/join" element={<ProtectedRoute role="client"><Layout><BecomePartner /></Layout></ProtectedRoute>} />
           
           {/* --- ADMIN ROUTES --- */}
           <Route path="/admin" element={<ProtectedRoute role="admin"><Layout><AdminDashboard /></Layout></ProtectedRoute>} />
