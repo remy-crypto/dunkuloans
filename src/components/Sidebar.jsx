@@ -20,13 +20,17 @@ export default function Sidebar() {
   }, [user]);
 
   const handleLogout = async () => {
-    await signOut();
-    navigate("/login");
+    try {
+      await signOut();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   const isActive = (path) => {
     if (path === location.pathname) return true;
-    if (path !== '/client' && path !== '/admin' && path !== '/partner' && path !== '/investor' && location.pathname.startsWith(path)) return true;
+    if (location.pathname.startsWith(path) && path !== '/client' && path !== '/admin') return true;
     return false;
   };
 
@@ -38,10 +42,10 @@ export default function Sidebar() {
   const adminMenu = [
     { name: "Dashboard", path: "/admin", icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" },
     { name: "Clients", path: "/admin/clients", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
-    { name: "Investors", path: "/admin/investors", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
+    { name: "Investors", path: "/admin/investors", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1" },
     { name: "KYC Queue", path: "/admin/kyc", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414" },
     { name: "Collateral", path: "/admin/review", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
-    { name: "Underwriting", path: "/admin/underwriting", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" },
+    { name: "Underwriting", path: "/admin/underwriting", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 00-2-2h-2" },
     { name: "Support", path: "/admin/support", icon: "M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536" },
   ];
 
@@ -51,18 +55,7 @@ export default function Sidebar() {
     { name: "Profile & Settings", path: "/client/profile", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
     { name: "Support", path: "/client/support", icon: "M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536" },
     { name: "My Activity", path: "/client/activity", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
-  ];
-
-  const investorMenu = [
-    { name: "Investments", path: "/investor", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1" }, // Pie Chart-ish
-    { name: "Support", path: "/investor/support", icon: "M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536" }, // Life ring
-    { name: "Activity Log", path: "/investor/activity", icon: "M7 12l3-3 3 3 4-4M8 21l4-4 4 4" }, // Pulse
-  ];
-
-  const partnerMenu = [
-    { name: "Dashboard", path: "/partner", icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" },
-    { name: "My Referrals", path: "/partner/referrals", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857" },
-    { name: "Earnings", path: "/partner/earnings", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1" },
+    { name: "Join Network", path: "/client/join", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" }, // New Item
   ];
 
   const superAdminMenu = [
@@ -75,10 +68,22 @@ export default function Sidebar() {
      { name: "Authorization", path: "/admin/authorization", icon: "M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743" },
      { name: "Staff Management", path: "/admin/staff", icon: "M12 4.354a4 4 0 110 5.292" },
      { name: "Claims Center", path: "/admin/claims", icon: "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
-     { name: "Clients", path: "/admin/clients", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857" },
+     { name: "Clients", path: "/admin/clients", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
      { name: "Investors", path: "/admin/investors", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1" },
      { name: "Agents", path: "/admin/agents", icon: "M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01" },
-     { name: "Underwriting", path: "/admin/underwriting", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" },
+     { name: "Underwriting", path: "/admin/underwriting", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 00-2-2h-2" },
+  ];
+
+  const partnerMenu = [
+    { name: "Dashboard", path: "/partner", icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" },
+    { name: "My Referrals", path: "/partner/referrals", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
+    { name: "Earnings", path: "/partner/earnings", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1" },
+  ];
+
+  const investorMenu = [
+    { name: "Investments", path: "/investor", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1" },
+    { name: "Support", path: "/investor/support", icon: "M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536" },
+    { name: "Activity Log", path: "/investor/activity", icon: "M7 12l3-3 3 3 4-4M8 21l4-4 4 4" },
   ];
 
   let menuToRender = borrowerMenu;
@@ -104,7 +109,7 @@ export default function Sidebar() {
         <h2 className="text-xl font-bold text-white tracking-wider">DUNKU</h2>
         <div className="text-xs text-green-500 font-semibold tracking-widest">BUSINESS</div>
         <div className="text-[10px] text-gray-400 font-bold tracking-widest mt-0.5">SOLUTIONS LTD</div>
-        <p className="text-[10px] text-gray-500 mt-2">Your ideal Home Filled with Hope</p>
+        <p className="text-[10px] text-gray-500 mt-2">Your idea home field with Hope</p>
       </div>
 
       <div className="px-6 mb-4">
@@ -133,7 +138,7 @@ export default function Sidebar() {
           </div>
           <div className="overflow-hidden">
             <p className="text-sm font-medium text-white truncate">
-              {role === 'investor' ? 'Investor One' : user?.email?.split('@')[0]}
+              {role === 'partner' ? 'Agent' : role === 'investor' ? 'Investor' : user?.email?.split('@')[0]}
             </p>
             <p className="text-xs text-gray-500 truncate">{user?.email}</p>
           </div>

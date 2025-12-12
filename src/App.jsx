@@ -5,7 +5,7 @@ import { supabase } from './lib/SupabaseClient';
 import Layout from './components/Layout';
 
 // --- NEW LANDING PAGE ---
-import LandingPage from './pages/LandingPage'; // <--- NEW IMPORT
+import LandingPage from './pages/LandingPage'; 
 
 // --- PAGE IMPORTS ---
 import ClientDashboard from './pages/client/ClientDashboard';
@@ -44,12 +44,14 @@ import PartnerReferrals from './pages/partner/PartnerReferrals';
 import PartnerEarnings from './pages/partner/PartnerEarnings';
 import InvestorDashboard from './pages/investor/InvestorDashboard';
 
+// Auth & Legal
 import LoginSelection from './pages/Login';
 import TermsAndConditions from './pages/TermsAndConditions';
 import ActivityLog from './pages/ActivityLog';
 
 
 // --- ROLE DISPATCHER ---
+// Checks role on login and redirects to the correct portal
 const DashboardDispatcher = () => {
   const { user } = useAuth();
   const [role, setRole] = useState(null);
@@ -73,6 +75,7 @@ const DashboardDispatcher = () => {
   if (role === 'client') return <Navigate to="/client" replace />;
   if (role === 'admin') return <Navigate to="/admin" replace />;
   if (role === 'super_admin') return <Navigate to="/admin" replace />;
+  if (role === 'investor') return <Navigate to="/investor" replace />;
   
   return <Navigate to="/client" replace />;
 };
@@ -120,7 +123,6 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           {/* --- PUBLIC ROUTES --- */}
-          {/* This is the new change: Root goes to Landing Page */}
           <Route path="/" element={<LandingPage />} />
           
           <Route path="/login" element={<LoginSelection />} />
@@ -130,7 +132,7 @@ export default function App() {
           {/* Logic to send user to correct dashboard */}
           <Route path="/dashboard" element={<DashboardDispatcher />} />
           
-          {/* --- PROTECTED ROUTES (Unchanged) --- */}
+          {/* --- CLIENT ROUTES --- */}
           <Route path="/client" element={<ProtectedRoute role="client"><Layout><ClientDashboard /></Layout></ProtectedRoute>} />
           <Route path="/client/submit" element={<ProtectedRoute role="client"><Layout><CollateralSubmission /></Layout></ProtectedRoute>} />
           <Route path="/client/apply" element={<ProtectedRoute role="client"><Layout><ApplyForLoan /></Layout></ProtectedRoute>} />
@@ -138,6 +140,7 @@ export default function App() {
           <Route path="/client/support" element={<ProtectedRoute role="client"><Layout><SupportPortal /></Layout></ProtectedRoute>} />
           <Route path="/client/activity" element={<ProtectedRoute role="client"><Layout><ActivityLog /></Layout></ProtectedRoute>} />
           
+          {/* --- ADMIN ROUTES --- */}
           <Route path="/admin" element={<ProtectedRoute role="admin"><Layout><AdminDashboard /></Layout></ProtectedRoute>} />
           <Route path="/admin/clients" element={<ProtectedRoute role="admin"><Layout><AdminClients /></Layout></ProtectedRoute>} />
           <Route path="/admin/investors" element={<ProtectedRoute role="admin"><Layout><AdminInvestors /></Layout></ProtectedRoute>} />
@@ -158,11 +161,15 @@ export default function App() {
           <Route path="/admin/aml" element={<ProtectedRoute role="admin"><Layout><AdminAML /></Layout></ProtectedRoute>} />
           <Route path="/admin/payments" element={<ProtectedRoute role="admin"><Layout><AdminPayments /></Layout></ProtectedRoute>} />
           
+          {/* --- PARTNER ROUTES --- */}
           <Route path="/partner" element={<ProtectedRoute role="partner"><Layout><PartnerDashboard /></Layout></ProtectedRoute>} />
           <Route path="/partner/referrals" element={<ProtectedRoute role="partner"><Layout><PartnerReferrals /></Layout></ProtectedRoute>} />
           <Route path="/partner/earnings" element={<ProtectedRoute role="partner"><Layout><PartnerEarnings /></Layout></ProtectedRoute>} />
+          
+          {/* --- INVESTOR ROUTES --- */}
           <Route path="/investor" element={<ProtectedRoute role="investor"><Layout><InvestorDashboard /></Layout></ProtectedRoute>} />
 
+          {/* Catch All */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
