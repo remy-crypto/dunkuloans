@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { supabase } from "../lib/SupabaseClient";
 import { useNavigate, Link } from "react-router-dom";
 
@@ -104,7 +104,8 @@ export default function Register() {
   };
 
   // --- STYLES ---
-  const inputStyle = "w-full bg-gray-700 text-white border border-gray-600 rounded px-3 py-2 text-sm focus:border-indigo-500 outline-none";
+  // Fix: Standardized input style for consistency and visibility
+  const inputStyle = "w-full bg-gray-700 text-white border border-gray-600 rounded px-3 py-2 text-sm focus:border-indigo-500 outline-none placeholder-gray-400";
   const labelStyle = "block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide";
   const sectionTitleStyle = "text-sm font-bold text-indigo-900 border-b border-gray-200 pb-2 mb-4 flex items-center gap-2";
 
@@ -178,7 +179,8 @@ export default function Register() {
              </h3>
              <div className="mb-4">
                 <label className={labelStyle}>NRC Number</label>
-                <input type="text" name="nrcNumber" placeholder="123456/11/1" className={`${inputStyle} bg-white text-gray-900 border-gray-300`} onChange={handleChange} required />
+                {/* FIXED: Removed bg-white and text-gray-900 to ensure visibility */}
+                <input type="text" name="nrcNumber" placeholder="123456/11/1" className={inputStyle} onChange={handleChange} required />
              </div>
              
              <label className={labelStyle}>Upload NRC & Selfie (Required)</label>
@@ -212,20 +214,20 @@ export default function Register() {
              <div className="mb-4">
                <p className="text-xs font-bold text-gray-400 mb-2 uppercase">Emergency Contact 1</p>
                <div className="grid grid-cols-2 gap-3 mb-2">
-                  <input type="text" name="ec1Name" placeholder="Full Name" className={`${inputStyle} bg-gray-50 text-gray-900 border-gray-200`} onChange={handleChange} required />
-                  <input type="text" name="ec1Rel" placeholder="Relationship" className={`${inputStyle} bg-gray-50 text-gray-900 border-gray-200`} onChange={handleChange} required />
+                  <input type="text" name="ec1Name" placeholder="Full Name" className={`${inputStyle} bg-gray-50 text-gray-900 border-gray-200 placeholder-gray-500`} onChange={handleChange} required />
+                  <input type="text" name="ec1Rel" placeholder="Relationship" className={`${inputStyle} bg-gray-50 text-gray-900 border-gray-200 placeholder-gray-500`} onChange={handleChange} required />
                </div>
-               <input type="text" name="ec1Phone" placeholder="Mobile Money Number" className={`${inputStyle} bg-gray-50 text-gray-900 border-gray-200`} onChange={handleChange} required />
+               <input type="text" name="ec1Phone" placeholder="Mobile Money Number" className={`${inputStyle} bg-gray-50 text-gray-900 border-gray-200 placeholder-gray-500`} onChange={handleChange} required />
              </div>
 
              {/* Contact 2 */}
              <div>
                <p className="text-xs font-bold text-gray-400 mb-2 uppercase">Emergency Contact 2</p>
                <div className="grid grid-cols-2 gap-3 mb-2">
-                  <input type="text" name="ec2Name" placeholder="Full Name" className={`${inputStyle} bg-gray-50 text-gray-900 border-gray-200`} onChange={handleChange} required />
-                  <input type="text" name="ec2Rel" placeholder="Relationship" className={`${inputStyle} bg-gray-50 text-gray-900 border-gray-200`} onChange={handleChange} required />
+                  <input type="text" name="ec2Name" placeholder="Full Name" className={`${inputStyle} bg-gray-50 text-gray-900 border-gray-200 placeholder-gray-500`} onChange={handleChange} required />
+                  <input type="text" name="ec2Rel" placeholder="Relationship" className={`${inputStyle} bg-gray-50 text-gray-900 border-gray-200 placeholder-gray-500`} onChange={handleChange} required />
                </div>
-               <input type="text" name="ec2Phone" placeholder="Mobile Money Number" className={`${inputStyle} bg-gray-50 text-gray-900 border-gray-200`} onChange={handleChange} required />
+               <input type="text" name="ec2Phone" placeholder="Mobile Money Number" className={`${inputStyle} bg-gray-50 text-gray-900 border-gray-200 placeholder-gray-500`} onChange={handleChange} required />
              </div>
           </div>
 
