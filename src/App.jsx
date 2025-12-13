@@ -7,22 +7,19 @@ import Layout from './components/Layout';
 // --- NEW LANDING PAGE ---
 import LandingPage from './pages/LandingPage'; 
 
-// --- PUBLIC PAGES ---
-import LoginSelection from './pages/Login';
-import ClientRegistration from './pages/Register';
-import TermsAndConditions from './pages/TermsAndConditions';
+// --- MAIN DASHBOARD (Traffic Cop) ---
+import DashboardHome from './pages/Dashboard'; // <--- NEW IMPORT
 
-// --- CLIENT (BORROWER) PAGES ---
+// --- PAGE IMPORTS ---
 import ClientDashboard from './pages/client/ClientDashboard';
 import CollateralSubmission from './pages/client/CollateralSubmission';
 import ApplyForLoan from './pages/client/ApplyForLoan';
+import ClientRegistration from './pages/Register';
 import ClientProfile from './pages/client/ClientProfile';
 import SupportPortal from './pages/SupportPortal';
-import ActivityLog from './pages/ActivityLog';
-import BecomePartner from './pages/client/BecomePartner';
 
-// --- ADMIN (WORKER) PAGES ---
-import AdminDashboard from './pages/admin/AdminDashboard';
+// Admin Pages
+import AdminDashboard from './pages/admin/AdminDashboard'; // Still used for specific imports if needed
 import AdminClients from './pages/admin/AdminClients'; 
 import AdminInvestors from './pages/admin/AdminInvestors';
 import AdminUnderwriting from './pages/admin/AdminUnderwriting';
@@ -30,7 +27,7 @@ import AdminKYC from './pages/admin/AdminKYC';
 import AdminCollateral from './pages/admin/AdminCollateral'; 
 import AdminSupport from './pages/admin/AdminSupport';
 
-// --- SUPER ADMIN / ADVANCED PAGES ---
+// Super Admin / Future Pages
 import AdminLoanDetails from './pages/admin/AdminLoanDetails';
 import AdminAgents from './pages/admin/AdminAgents';
 import AdminStaff from './pages/admin/AdminStaff';
@@ -45,13 +42,19 @@ import AdminAuthorization from './pages/admin/AdminAuthorization';
 import AdminClaims from './pages/admin/AdminClaims';
 import AdminSystemLogs from './pages/admin/AdminSystemLogs';
 
-// --- PARTNER & INVESTOR PAGES ---
+// Partners & Investors
 import PartnerDashboard from './pages/partner/PartnerDashboard';
 import PartnerReferrals from './pages/partner/PartnerReferrals';
 import PartnerEarnings from './pages/partner/PartnerEarnings';
 import InvestorDashboard from './pages/investor/InvestorDashboard';
 
-// --- ROLE DISPATCHER (Traffic Cop) ---
+import LoginSelection from './pages/Login';
+import TermsAndConditions from './pages/TermsAndConditions';
+import ActivityLog from './pages/ActivityLog';
+import BecomePartner from './pages/client/BecomePartner';
+
+
+// --- ROLE DISPATCHER ---
 const DashboardDispatcher = () => {
   const { user } = useAuth();
   const [role, setRole] = useState(null);
@@ -80,7 +83,7 @@ const DashboardDispatcher = () => {
   return <Navigate to="/client" replace />;
 };
 
-// --- PROTECTED ROUTE WRAPPER ---
+// --- PROTECTED ROUTE ---
 const ProtectedRoute = ({ children, role }) => {
   const { user, loading } = useAuth();
   const [userRole, setUserRole] = useState(null);
@@ -122,7 +125,6 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* --- PUBLIC ROUTES --- */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginSelection />} />
           <Route path="/register" element={<ClientRegistration />} />
@@ -140,8 +142,10 @@ export default function App() {
           <Route path="/client/activity" element={<ProtectedRoute role="client"><Layout><ActivityLog /></Layout></ProtectedRoute>} />
           <Route path="/client/join" element={<ProtectedRoute role="client"><Layout><BecomePartner /></Layout></ProtectedRoute>} />
           
-          {/* --- ADMIN & SUPER ADMIN ROUTES --- */}
-          <Route path="/admin" element={<ProtectedRoute role="admin"><Layout><AdminDashboard /></Layout></ProtectedRoute>} />
+          {/* --- ADMIN ROUTES --- */}
+          {/* UPDATED: This now uses DashboardHome to switch between Admin/SuperAdmin views */}
+          <Route path="/admin" element={<ProtectedRoute role="admin"><Layout><DashboardHome /></Layout></ProtectedRoute>} />
+          
           <Route path="/admin/clients" element={<ProtectedRoute role="admin"><Layout><AdminClients /></Layout></ProtectedRoute>} />
           <Route path="/admin/investors" element={<ProtectedRoute role="admin"><Layout><AdminInvestors /></Layout></ProtectedRoute>} />
           <Route path="/admin/underwriting" element={<ProtectedRoute role="admin"><Layout><AdminUnderwriting /></Layout></ProtectedRoute>} />
@@ -170,7 +174,6 @@ export default function App() {
           {/* --- INVESTOR ROUTES --- */}
           <Route path="/investor" element={<ProtectedRoute role="investor"><Layout><InvestorDashboard /></Layout></ProtectedRoute>} />
 
-          {/* Catch All */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
