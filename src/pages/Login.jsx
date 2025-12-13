@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "../lib/SupabaseClient"; // Import Supabase directly for the check
 
 export default function Login() {
-  const { signIn } = useAuth();
+  const { signIn, signOut } = useAuth(); // Import signOut to kick unverified users
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -13,13 +14,36 @@ export default function Login() {
   const onSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    
     try {
-      // Pass matchCode to signIn function
-      await signIn(email, password, matchCode);
-      navigate("/dashboard");
+      // 1. Attempt standard login
+      const { user } = await signIn(email, password, matchCode);
+
+      if (user) {
+        // 2. CHECK VERIFICATION STATUS
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('is_verified, role')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        // 3. If NOT verified, kick them out
+        if (profile.is_verified === false) {
+          await signOut(); // Log them out immediately
+          alert("Your account is pending approval by an Administrator. Please wait for verification.");
+          setLoading(false);
+          return; // Stop here
+        }
+
+        // 4. If Verified, proceed to dashboard
+        navigate("/dashboard");
+      }
+
     } catch (err) {
+      // Handle "Invalid login credentials" or other errors
       alert(err.message);
-    } finally {
       setLoading(false);
     }
   };
@@ -31,12 +55,12 @@ export default function Login() {
       <div className="text-center mb-8">
         <h1 className="text-4xl font-normal text-[#0e2a47]">DUNKU BUSINESS</h1>
         <p className="text-xs font-bold tracking-[0.3em] text-[#0e2a47] mt-1">SOLUTIONS LTD</p>
-        <p className="text-green-700 text-sm mt-3 font-medium">Your ideal Home Filled with Hope</p>
+        <p className="text-green-700 text-sm mt-3 font-medium">Your idea home filled with Hope</p>
         <p className="text-gray-500 text-xs mt-6">Secure, AI-powered collateral loans at your fingertips.</p>
       </div>
 
       <div className="mb-6 text-xs text-gray-400 cursor-pointer hover:text-gray-600">
-        ← Back to Role Selection
+        <Link to="/">← Back to Home</Link>
       </div>
 
       <div className="w-full max-w-md bg-white p-10 rounded-2xl shadow-xl border border-gray-100">
