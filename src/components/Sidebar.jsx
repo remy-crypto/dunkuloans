@@ -14,13 +14,28 @@ export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
     if (user) {
       const fetchRole = async () => {
-        const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-        if (data) setRole(data.role === 'borrower' ? 'client' : data.role);
+        // FIX: Use maybeSingle() to prevent 406 errors if profile is missing
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        if (mounted) {
+          if (data) {
+            setRole(data.role === 'borrower' ? 'client' : data.role);
+          } else {
+            console.warn("Profile missing for user, defaulting to borrower");
+            // Optionally auto-create profile here if needed, but for now safe default
+          }
+        }
       };
       fetchRole();
     }
+    return () => { mounted = false; };
   }, [user]);
 
   // Auto-close sidebar on mobile when route changes
@@ -118,39 +133,19 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* MOBILE HEADER & TOGGLE */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4 z-50">
         <div className="flex items-center gap-2">
            <div className="text-xl font-bold text-white tracking-wider">DUNKU</div>
            <div className="text-[10px] text-green-500 font-bold mt-1">MOBILE</div>
         </div>
-        <button 
-          onClick={() => setIsOpen(!isOpen)} 
-          className="p-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg"
-        >
+        <button onClick={() => setIsOpen(!isOpen)} className="p-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg">
           {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
-      {/* MOBILE OVERLAY */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      {isOpen && <div className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm" onClick={() => setIsOpen(false)} />}
 
-      {/* SIDEBAR CONTAINER */}
-      <aside 
-        className={`
-          fixed lg:sticky top-0 left-0 
-          h-[calc(100vh-4rem)] lg:h-screen 
-          w-64 bg-gray-900 border-r border-gray-800 flex flex-col z-50 transition-transform duration-300 ease-in-out 
-          ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-          mt-16 lg:mt-0
-        `}
-      >
-        {/* BRANDING (Hidden on mobile to save space, shown in mobile header instead) */}
+      <aside className={`fixed lg:sticky top-0 left-0 h-[calc(100vh-4rem)] lg:h-screen w-64 bg-gray-900 border-r border-gray-800 flex flex-col z-50 transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} mt-16 lg:mt-0`}>
         <div className="p-6 mb-2 hidden lg:block shrink-0">
           <h2 className="text-xl font-bold text-white tracking-wider">DUNKU</h2>
           <div className="text-xs text-green-500 font-semibold tracking-widest">BUSINESS</div>
@@ -162,7 +157,6 @@ export default function Sidebar() {
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{portalName}</p>
         </div>
 
-        {/* SCROLLABLE NAVIGATION AREA */}
         <nav className="flex-1 px-3 space-y-1 overflow-y-auto custom-scrollbar">
           {menuToRender.map((item) => (
             <Link 
@@ -178,7 +172,6 @@ export default function Sidebar() {
           ))}
         </nav>
 
-        {/* HELP SECTION (Borrower Only) - Static at bottom */}
         {(role === 'client' || role === 'borrower') && (
           <div className="px-6 mt-4 mb-2 shrink-0">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Need Help?</p>
@@ -186,7 +179,6 @@ export default function Sidebar() {
           </div>
         )}
 
-        {/* USER PROFILE & LOGOUT - Static at bottom */}
         <div className="p-4 border-t border-gray-800 mt-auto shrink-0 bg-gray-900">
           <div className="flex items-center gap-3 mb-4 px-2">
             <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-700">
