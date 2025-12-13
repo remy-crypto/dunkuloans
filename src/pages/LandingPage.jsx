@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   Menu, X, Facebook, Twitter, Instagram, Linkedin, Smartphone, 
-  Phone, Mail, Globe, Check, Clock, Calendar, Percent, Handshake, Users, Home, HelpCircle, ChevronDown, ChevronUp
+  Phone, Mail, Globe, Check, Clock, Calendar, Percent, Handshake, Users, Home, HelpCircle, User, Briefcase, ShoppingBag
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -12,28 +12,40 @@ export default function LandingPage() {
 
   // --- LIVE CALCULATOR STATE ---
   const [amount, setAmount] = useState(500);
-  const [months, setMonths] = useState(3);
+  const [weeks, setWeeks] = useState(4); // Default to 4 weeks
   
   const serviceFee = 50;
-  const interestRate = 0.15; 
-  const totalRepayment = amount * (1 + (interestRate * months));
-  const monthlyRepayment = totalRepayment / months;
+  
+  // Specific Interest Rates based on Weeks
+  const rates = {
+    1: 0.19, // 19%
+    2: 0.26, // 26%
+    3: 0.33, // 33%
+    4: 0.40  // 40%
+  };
 
-  // --- PRODUCT DATA ---
+  const currentRate = rates[weeks];
+  const totalRepayment = amount * (1 + currentRate);
+  
+  // Calculate Due Date based on weeks selected
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + (weeks * 7));
+
+  // --- PRODUCT DATA (AUTHENTIC ZAMBIAN/AFRICAN CONTEXT) ---
   const products = [
     {
       title: "COLLATERAL BASED LOANS",
-      image: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop", 
+      image: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=800&auto=format&fit=crop", 
       desc: "Secure funding against your valuable assets with speed."
     },
     {
       title: "MARKETEERS LOANS",
-      image: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?q=80&w=800&auto=format&fit=crop", 
+      image: "https://images.unsplash.com/photo-1607083206968-13611e3d76db?q=80&w=800&auto=format&fit=crop", 
       desc: "Empowering small scale traders to grow their stock daily."
     },
     {
       title: "ITEM LOANS",
-      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop", 
+      image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop", 
       desc: "Get the latest gadgets and appliances on flexible credit."
     },
     {
@@ -68,10 +80,6 @@ export default function LandingPage() {
     }
   };
 
-  const toggleFaq = (index) => {
-    setOpenFaq(openFaq === index ? null : index);
-  };
-
   return (
     <div className="font-sans text-gray-800 bg-white">
       
@@ -88,7 +96,7 @@ export default function LandingPage() {
       </div>
 
       {/* --- NAVBAR --- */}
-      <nav className="flex items-center justify-between px-6 py-4 bg-white sticky top-0 z-50 shadow-sm">
+      <nav className="flex items-center justify-between px-6 py-4 bg-white sticky top-0 z-50 shadow-sm border-b border-gray-100">
         <div className="flex items-center gap-2">
            <div className="flex flex-col">
              <div className="text-xl md:text-2xl font-black text-[#0e2a47] leading-none tracking-tight">
@@ -145,6 +153,8 @@ export default function LandingPage() {
         <div className="absolute inset-0 opacity-5 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
         
         <div className="container mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
+          
+          {/* Hero Image */}
           <div className="hidden lg:block relative">
              <div className="absolute -inset-2 bg-[#b8860b] rounded-lg opacity-20 blur-lg"></div>
              <div className="border-4 border-white rounded-lg shadow-2xl overflow-hidden">
@@ -156,10 +166,11 @@ export default function LandingPage() {
              </div>
           </div>
 
-          {/* Live Calculator */}
+          {/* Live Calculator (UPDATED) */}
           <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full ml-auto border-t-8 border-[#b8860b]">
             <h2 className="text-xl font-black text-[#0e2a47] mb-6 uppercase tracking-tight border-b pb-2">Loan Calculator</h2>
-            <div className="space-y-5">
+            
+            <div className="space-y-6">
               <div>
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">How much do you need?</label>
                 <div className="relative">
@@ -172,21 +183,51 @@ export default function LandingPage() {
                   />
                 </div>
               </div>
+
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Duration (Months)</label>
+                <div className="flex justify-between mb-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Duration</label>
+                  <span className="text-sm font-bold text-[#0e2a47]">{weeks} {weeks === 1 ? 'Week' : 'Weeks'}</span>
+                </div>
                 <input 
-                  type="number" 
-                  value={months} 
-                  onChange={(e) => setMonths(Number(e.target.value))} 
-                  className="w-full p-4 border-2 border-gray-100 rounded bg-gray-50 focus:border-[#15803d] text-2xl font-black text-[#0e2a47] outline-none transition-all" 
+                  type="range" 
+                  min="1" 
+                  max="4" 
+                  step="1"
+                  value={weeks} 
+                  onChange={(e) => setWeeks(Number(e.target.value))} 
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#b8860b]"
                 />
+                <div className="flex justify-between text-[10px] text-gray-400 mt-1 uppercase font-bold">
+                   <span>1 Wk (19%)</span>
+                   <span>4 Wks (40%)</span>
+                </div>
               </div>
+
               <div className="bg-[#f0fdf4] p-5 rounded-lg border border-green-100 space-y-3">
-                <div className="flex justify-between text-xs font-bold text-gray-500 uppercase"><span>Service Fee</span><span>K {serviceFee.toFixed(2)}</span></div>
-                <div className="flex justify-between text-xs font-bold text-[#15803d] uppercase"><span>You Receive</span><span>K {(amount - serviceFee).toFixed(2)}</span></div>
-                <div className="flex justify-between items-center text-gray-900 border-t border-green-200 pt-3"><span className="text-sm font-black uppercase">Monthly Pay</span><span className="text-2xl font-black text-[#15803d]">K {monthlyRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</span></div>
+                <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                  <span>Interest Rate</span>
+                  <span>{(currentRate * 100).toFixed(0)}%</span>
+                </div>
+                <div className="flex justify-between text-xs font-bold text-[#15803d] uppercase">
+                  <span>You Receive</span>
+                  <span>K {(amount - serviceFee).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center text-gray-900 border-t border-green-200 pt-3">
+                  <span className="text-sm font-black uppercase">Total Repayment</span>
+                  <span className="text-2xl font-black text-[#15803d]">K {totalRepayment.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>
+                </div>
+                <div className="text-[10px] text-center text-gray-500 font-medium">
+                   Due Date: {dueDate.toLocaleDateString()}
+                </div>
               </div>
-              <button onClick={() => navigate('/register')} className="w-full py-5 bg-[#15803d] hover:bg-[#115e2b] text-white font-black text-sm uppercase tracking-[0.2em] rounded shadow-xl transition transform hover:scale-[1.02] active:scale-95">Get This Loan</button>
+
+              <button 
+                onClick={() => navigate('/register')} 
+                className="w-full py-5 bg-[#15803d] hover:bg-[#115e2b] text-white font-black text-sm uppercase tracking-[0.2em] rounded shadow-xl transition transform hover:scale-[1.02] active:scale-95"
+              >
+                Get This Loan
+              </button>
             </div>
           </div>
         </div>
@@ -199,6 +240,7 @@ export default function LandingPage() {
             <h2 className="text-3xl md:text-5xl font-black text-[#0e2a47] uppercase tracking-tighter">Our Products</h2>
             <div className="h-1.5 w-24 bg-[#b8860b] mx-auto mt-4 rounded-full"></div>
           </div>
+          
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {products.map((product, idx) => (
               <div key={idx} className="bg-[#064e3b] rounded-lg shadow-xl overflow-hidden flex flex-col group h-full border-2 border-[#b8860b]/20">
@@ -207,10 +249,19 @@ export default function LandingPage() {
                 </div>
                 <div className="p-6 text-center flex-1 flex flex-col justify-between bg-[#064e3b]">
                    <div>
-                     <h3 className="text-white font-black text-sm md:text-base leading-tight uppercase mb-3 tracking-wide">{product.title}</h3>
-                     <p className="text-white/60 text-[11px] mb-6 leading-relaxed">{product.desc}</p>
+                     <h3 className="text-white font-black text-sm md:text-base leading-tight uppercase mb-3 tracking-wide">
+                        {product.title}
+                     </h3>
+                     <p className="text-white/60 text-[11px] mb-6 leading-relaxed">
+                        {product.desc}
+                     </p>
                    </div>
-                   <button onClick={() => navigate('/register')} className="w-full py-2 border-2 border-[#b8860b] text-[#b8860b] hover:bg-[#b8860b] hover:text-white font-bold text-[10px] uppercase tracking-[0.2em] transition">Apply Now</button>
+                   <button 
+                    onClick={() => navigate('/register')}
+                    className="w-full py-2 border-2 border-[#b8860b] text-[#b8860b] hover:bg-[#b8860b] hover:text-white font-bold text-[10px] uppercase tracking-[0.2em] transition"
+                   >
+                     Apply Now
+                   </button>
                 </div>
               </div>
             ))}
@@ -222,18 +273,23 @@ export default function LandingPage() {
       <div id="steps" className="py-20 px-6 bg-white text-center border-t border-gray-100 scroll-mt-20">
         <div className="container mx-auto">
           <h2 className="text-3xl md:text-4xl font-extrabold text-[#0e2a47] mb-16">How It Works</h2>
+          
           <div className="grid md:grid-cols-3 gap-12">
-            {[
-              { num: 1, title: "Easy Application", desc: "Apply right here on our website or visit our offices." },
-              { num: 2, title: "Flexible Options", desc: "Select type of loan and choose a plan that works for you." },
-              { num: 3, title: "Smooth Disbursement", desc: "Once approved, funds are sent to your mobile money or account." },
-            ].map((step) => (
-              <div key={step.num} className="flex flex-col items-center">
-                <div className="h-16 w-16 bg-[#b8860b] text-white rounded-full flex items-center justify-center mb-4 font-bold text-2xl shadow-lg">{step.num}</div>
-                <h3 className="text-xl font-bold text-[#0e2a47]">{step.title}</h3>
-                <p className="text-gray-500 mt-2 max-w-xs">{step.desc}</p>
-              </div>
-            ))}
+            <div className="flex flex-col items-center">
+              <div className="h-16 w-16 bg-[#b8860b] text-white rounded-full flex items-center justify-center mb-4 font-bold text-2xl shadow-lg">1</div>
+              <h3 className="text-xl font-bold text-[#0e2a47]">Easy Application</h3>
+              <p className="text-gray-500 mt-2 max-w-xs">Apply right here on our website or visit our offices.</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="h-16 w-16 bg-[#b8860b] text-white rounded-full flex items-center justify-center mb-4 font-bold text-2xl shadow-lg">2</div>
+              <h3 className="text-xl font-bold text-[#0e2a47]">Flexible Options</h3>
+              <p className="text-gray-500 mt-2 max-w-xs">Select type of loan and choose a plan that works for you.</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="h-16 w-16 bg-[#b8860b] text-white rounded-full flex items-center justify-center mb-4 font-bold text-2xl shadow-lg">3</div>
+              <h3 className="text-xl font-bold text-[#0e2a47]">Smooth Disbursement</h3>
+              <p className="text-gray-500 mt-2 max-w-xs">Once approved, funds are sent to your mobile money or account.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -289,7 +345,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* --- FAQs SECTION (NEW) --- */}
+      {/* --- FAQs SECTION --- */}
       <div id="faqs" className="py-20 px-6 bg-white border-t border-gray-100 scroll-mt-20">
         <div className="container mx-auto max-w-5xl">
           <div className="text-center mb-12">
@@ -322,7 +378,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* --- ADVANTAGES SECTION (NEW - Matches Image) --- */}
+      {/* --- ADVANTAGES SECTION --- */}
       <div className="py-20 px-6 bg-gray-50 border-t border-gray-200">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-12">
