@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   Menu, X, Facebook, Twitter, Instagram, Linkedin, Smartphone, 
-  Phone, Mail, Globe, Check
+  Phone, Mail, Globe, Check, Clock, Calendar, Percent, Handshake, Users, Home, HelpCircle, ChevronDown, ChevronUp
 } from "lucide-react";
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openFaq, setOpenFaq] = useState(null);
 
   // --- LIVE CALCULATOR STATE ---
   const [amount, setAmount] = useState(500);
@@ -42,6 +43,22 @@ export default function LandingPage() {
     }
   ];
 
+  // --- FAQ DATA ---
+  const faqs = [
+    { q: "What types of loans do you offer?", a: "We offer Collateral Loans, Item Loans, Marketeer (Group Loans), and Business Loans." },
+    { q: "What can I use as collateral for a Collateral Loan?", a: "You can use various items like phones, laptops, cars, stoves, fridges, and more as collateral." },
+    { q: "What are the interest rates for Collateral Loans?", a: "Our interest rates for Collateral Loans are: 1 week: 19%, 2 weeks: 26%, 3 weeks: 33%, 4 weeks: 40%." },
+    { q: "How does Item Loan work?", a: "With Item Loan, you get an item like a phone, laptop, or vehicle on loan and repay us on a monthly basis." },
+    { q: "What is Marketeer (Group Loan)?", a: "Marketeer is a group loan where a minimum of 3 people can apply together. The daily interest rate is 1.667% for 30 days." },
+    { q: "Do you offer loans for businesses?", a: "Yes, we offer Business Loans to support your business needs. Please contact us for more information." },
+    { q: "Do I need to send money to agents to get a loan?", a: "No, you don't need to send money to agents. We have our own official payment numbers, no middlemen." },
+    { q: "How quickly are loans disbursed?", a: "We disburse all loan amounts within 24 hours, Monday to Saturday." },
+    { q: "What are your working hours and days?", a: "Our working hours are Monday to Saturday, 09:00hrs to 17:00hrs." },
+    { q: "How do I apply for a loan?", a: "A: You can visit our office for a Physical application. B: You can apply online using our Website or contact us to discuss your loan options and apply." },
+    { q: "What are the repayment terms?", a: "Repayment terms vary depending on the loan type. Please check with us for specific details." },
+    { q: "Is there any penalty for late repayment?", a: "Yes, late repayment may incur additional charges. Please contact us to discuss your situation." },
+  ];
+
   // Helper to scroll to section
   const scrollToSection = (id) => {
     setMobileMenuOpen(false); 
@@ -49,6 +66,10 @@ export default function LandingPage() {
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  const toggleFaq = (index) => {
+    setOpenFaq(openFaq === index ? null : index);
   };
 
   return (
@@ -88,7 +109,7 @@ export default function LandingPage() {
           <button onClick={() => scrollToSection('steps')} className="hover:text-blue-600 transition-colors">Payments</button>
           <button onClick={() => scrollToSection('invest-promo')} className="hover:text-blue-600 transition-colors">Investments</button>
           <button onClick={() => scrollToSection('about-us')} className="hover:text-blue-600 transition-colors">About</button>
-          {/* Sign In Link */}
+          <button onClick={() => scrollToSection('faqs')} className="hover:text-blue-600 transition-colors">FAQs</button>
           <Link to="/login" className="text-blue-600 hover:text-blue-800 transition-colors">Login</Link>
         </div>
 
@@ -112,6 +133,7 @@ export default function LandingPage() {
           <button onClick={() => scrollToSection('steps')} className="text-left font-bold text-gray-800 uppercase text-sm">Payments</button>
           <button onClick={() => scrollToSection('invest-promo')} className="text-left font-bold text-gray-800 uppercase text-sm">Investments</button>
           <button onClick={() => scrollToSection('about-us')} className="text-left font-bold text-gray-800 uppercase text-sm">About Us</button>
+          <button onClick={() => scrollToSection('faqs')} className="text-left font-bold text-gray-800 uppercase text-sm">FAQs</button>
           <Link to="/login" className="text-left font-bold text-blue-600 uppercase text-sm">Sign In</Link>
           <hr />
           <Link to="/register" className="w-full text-center py-3 bg-[#15803d] text-white font-bold rounded uppercase text-sm">Apply Now</Link>
@@ -134,6 +156,7 @@ export default function LandingPage() {
              </div>
           </div>
 
+          {/* Live Calculator */}
           <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full ml-auto border-t-8 border-[#b8860b]">
             <h2 className="text-xl font-black text-[#0e2a47] mb-6 uppercase tracking-tight border-b pb-2">Loan Calculator</h2>
             <div className="space-y-5">
@@ -225,7 +248,6 @@ export default function LandingPage() {
              <button onClick={() => navigate('/register')} className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg text-lg transition">Get the app</button>
           </div>
           <div className="flex-1 relative flex justify-center">
-             {/* Phone graphic (kept same as previous version) */}
              <div className="w-[300px] h-[600px] bg-black rounded-[3rem] border-8 border-gray-800 shadow-2xl relative overflow-hidden bg-white">
                 <div className="h-full w-full bg-white text-gray-900 p-4 pt-12">
                    <div className="bg-blue-600 text-white p-6 rounded-2xl mb-4 shadow-lg"><p className="text-sm opacity-90">Wallet Balance</p><p className="text-3xl font-bold">K 9,846.90</p></div>
@@ -235,15 +257,15 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* --- ABOUT US SECTION (NEW) --- */}
+      {/* --- ABOUT US SECTION --- */}
       <div id="about-us" className="py-20 px-6 bg-gray-50 scroll-mt-20">
-        <div className="container mx-auto max-w-4xl">
+        <div className="container mx-auto max-w-5xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-5xl font-black text-[#0e2a47] uppercase tracking-tighter">About Us</h2>
             <div className="h-1.5 w-24 bg-[#b8860b] mx-auto mt-4 rounded-full"></div>
           </div>
 
-          <div className="bg-white p-8 md:p-12 rounded-2xl shadow-xl border-t-8 border-[#0e2a47]">
+          <div className="bg-white p-8 md:p-12 rounded-2xl shadow-xl border-t-8 border-[#0e2a47] mb-12">
             <p className="text-gray-600 leading-relaxed mb-6 text-lg">
               <strong className="text-[#0e2a47]">Dunku Business Solutions Ltd</strong> is a leading financial services provider in Zambia, offering a range of loan products to individuals and businesses. Our mission is to provide quick, flexible, and affordable financial solutions to our customers.
             </p>
@@ -255,7 +277,7 @@ export default function LandingPage() {
             </p>
 
             <h3 className="text-2xl font-bold text-[#0e2a47] mb-6">Our Values</h3>
-            <div className="grid sm:grid-cols-2 gap-4 mb-10">
+            <div className="grid sm:grid-cols-2 gap-4">
               {["Customer-centric approach", "Transparency and integrity", "Flexibility and adaptability", "Excellence in service delivery"].map((val, i) => (
                 <div key={i} className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg border border-gray-100">
                   <div className="bg-[#b8860b] rounded-full p-1 text-white"><Check className="w-4 h-4"/></div>
@@ -263,15 +285,68 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </div>
 
-            <div className="bg-[#f0f9ff] p-6 rounded-xl border border-blue-100">
-              <h3 className="text-xl font-bold text-[#0e2a47] mb-2">Contact Us</h3>
-              <p className="text-gray-600 mb-4">If you have any questions or would like to learn more about our services, please don't hesitate to contact us.</p>
-              <div className="flex flex-col sm:flex-row gap-6">
-                 <div className="flex items-center gap-2 font-bold text-blue-800"><Phone className="w-5 h-5"/> 0776430780 | 0778289080</div>
-                 <div className="flex items-center gap-2 font-bold text-blue-800"><Mail className="w-5 h-5"/> dunkubusinesssolutionsltd@gmail.com</div>
+      {/* --- FAQs SECTION (NEW) --- */}
+      <div id="faqs" className="py-20 px-6 bg-white border-t border-gray-100 scroll-mt-20">
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-5xl font-black text-[#0e2a47] uppercase tracking-tighter">FAQs</h2>
+            <p className="text-gray-500 mt-4">Common questions about our services.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {faqs.map((faq, i) => (
+              <div key={i} className="bg-gray-50 p-6 rounded-xl border border-gray-100 hover:border-blue-100 transition shadow-sm">
+                <div className="flex items-start gap-3">
+                  <HelpCircle className="w-6 h-6 text-[#b8860b] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-bold text-[#0e2a47] mb-2">{faq.q}</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{faq.a}</p>
+                  </div>
+                </div>
               </div>
+            ))}
+          </div>
+
+          <div className="bg-[#f0f9ff] p-6 rounded-xl border border-blue-100 mt-12 text-center">
+            <h3 className="text-xl font-bold text-[#0e2a47] mb-2">Still have questions?</h3>
+            <p className="text-gray-600 mb-6">If you have any questions or would like to learn more about our services, please don't hesitate to contact us.</p>
+            <div className="flex flex-col sm:flex-row justify-center gap-6">
+                <div className="flex items-center justify-center gap-2 font-bold text-blue-800"><Phone className="w-5 h-5"/> 0776430780 | 0778289080</div>
+                <div className="flex items-center justify-center gap-2 font-bold text-blue-800"><Mail className="w-5 h-5"/> dunkubusinesssolutionsltd@gmail.com</div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* --- ADVANTAGES SECTION (NEW - Matches Image) --- */}
+      <div className="py-20 px-6 bg-gray-50 border-t border-gray-200">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-12">
+             <h2 className="text-3xl md:text-5xl font-black text-[#0e2a47] uppercase tracking-tighter">Advantages of Choosing Us</h2>
+             <p className="text-gray-600 font-medium mt-2">Fast, Flexible, and Transparent Financial Solutions.</p>
+             <div className="h-1.5 w-24 bg-[#b8860b] mx-auto mt-4 rounded-full"></div>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-6">
+            {[
+              { title: "Quick Disbursement", desc: "We disburse loans within 24 hours, Monday to Saturday.", icon: <Clock className="w-8 h-8 text-[#0e2a47]"/> },
+              { title: "Flexible Repayment Terms", desc: "Choose a repayment plan that suits your financial situation.", icon: <Calendar className="w-8 h-8 text-[#0e2a47]"/> },
+              { title: "Competitive Interest Rates", desc: "Our rates are designed to be affordable and transparent.", icon: <Percent className="w-8 h-8 text-[#0e2a47]"/> },
+              { title: "No Agent Payments", desc: "Make payments directly to our official payment numbers, no middlemen.", icon: <Handshake className="w-8 h-8 text-[#0e2a47]"/> },
+              { title: "Personalized Service", desc: "Our experienced team provides tailored solutions to meet your needs.", icon: <Users className="w-8 h-8 text-[#0e2a47]"/> },
+              { title: "Convenient Working Hours", desc: "We're open Monday to Saturday, 09:00hrs to 17:00hrs.", icon: <Clock className="w-8 h-8 text-[#0e2a47]"/> },
+              { title: "Variety of Loan Products", desc: "Choose from Collateral Loans, Item Loans, Marketeer (Group Loans), and Business Loans.", icon: <Home className="w-8 h-8 text-[#0e2a47]"/> },
+            ].map((adv, i) => (
+              <div key={i} className="bg-white p-6 rounded-xl border-2 border-[#b8860b] shadow-sm hover:shadow-lg transition text-center flex flex-col items-center">
+                 <div className="mb-4">{adv.icon}</div>
+                 <h3 className="font-bold text-[#0e2a47] mb-2">{adv.title}</h3>
+                 <p className="text-xs text-gray-600 leading-relaxed">{adv.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
