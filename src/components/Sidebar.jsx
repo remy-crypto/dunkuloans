@@ -14,28 +14,13 @@ export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
     if (user) {
       const fetchRole = async () => {
-        // FIX: Use maybeSingle() to prevent 406 errors if profile is missing
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .maybeSingle();
-        
-        if (mounted) {
-          if (data) {
-            setRole(data.role === 'borrower' ? 'client' : data.role);
-          } else {
-            console.warn("Profile missing for user, defaulting to borrower");
-            // Optionally auto-create profile here if needed, but for now safe default
-          }
-        }
+        const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        if (data) setRole(data.role === 'borrower' ? 'client' : data.role);
       };
       fetchRole();
     }
-    return () => { mounted = false; };
   }, [user]);
 
   // Auto-close sidebar on mobile when route changes
@@ -99,12 +84,19 @@ export default function Sidebar() {
      { name: "Clients", path: "/admin/clients", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
      { name: "Investors", path: "/admin/investors", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1" },
      { name: "Agents", path: "/admin/agents", icon: "M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01" },
+     { name: "Payments", path: "/admin/payments", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1" },
+     { name: "KYC Queue", path: "/admin/kyc", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414" },
+     { name: "Collateral Review", path: "/admin/review", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
      { name: "Underwriting", path: "/admin/underwriting", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 00-2-2h-2" },
+     { name: "AML Monitoring", path: "/admin/aml", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
+     { name: "Compliance", path: "/admin/compliance", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 00-2-2h-2" },
+     { name: "Support Desk", path: "/admin/support", icon: "M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536" },
+     { name: "System Logs", path: "/admin/logs", icon: "M7 12l3-3 3 3 4-4M8 21l4-4 4 4" },
   ];
 
   const partnerMenu = [
     { name: "Dashboard", path: "/partner", icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" },
-    { name: "My Referrals", path: "/partner/referrals", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
+    { name: "My Referrals", path: "/partner/referrals", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857" },
     { name: "Earnings", path: "/partner/earnings", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1" },
   ];
 
