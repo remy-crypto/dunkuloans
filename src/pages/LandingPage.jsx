@@ -8,10 +8,8 @@ import {
 export default function LandingPage() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [openFaq, setOpenFaq] = useState(null);
 
   // --- LIVE CALCULATOR STATE ---
-  // Fix: Amount logic updated to handle empty input gracefully
   const [amount, setAmount] = useState(500);
   const [weeks, setWeeks] = useState(4); 
   
@@ -26,33 +24,38 @@ export default function LandingPage() {
   };
 
   const currentRate = rates[weeks];
-  // Ensure we use a safe number for calculation (0 if empty)
-  const safeAmount = amount === "" ? 0 : amount;
-  const totalRepayment = safeAmount * (1 + currentRate);
+  
+  // Fix: Handle empty string state for calculation to avoid NaN
+  const numericAmount = amount === "" ? 0 : Number(amount);
+  const totalRepayment = numericAmount * (1 + currentRate);
   
   // Calculate Due Date based on weeks selected
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + (weeks * 7));
 
-  // --- PRODUCT DATA ---
+  // --- PRODUCT DATA (AUTHENTIC ZAMBIAN/AFRICAN CONTEXT) ---
   const products = [
     {
       title: "COLLATERAL BASED LOANS",
-      image: "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=800&auto=format&fit=crop", 
+      // Image: Black hands shaking / business deal
+      image: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop", 
       desc: "Secure funding against your valuable assets with speed."
     },
     {
       title: "MARKETEERS LOANS",
-      image: "https://images.unsplash.com/photo-1607083206968-13611e3d76db?q=80&w=800&auto=format&fit=crop", 
+      // Image: African market woman with produce (Authentic context)
+      image: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?q=80&w=800&auto=format&fit=crop", 
       desc: "Empowering small scale traders to grow their stock daily."
     },
     {
       title: "ITEM LOANS",
-      image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop", 
+      // Image: Black individual using technology/laptop
+      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop", 
       desc: "Get the latest gadgets and appliances on flexible credit."
     },
     {
       title: "BUSINESS LOANS",
+      // Image: Black entrepreneurs discussing business
       image: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=800&auto=format&fit=crop", 
       desc: "Scalable capital for registered business entities."
     }
@@ -74,6 +77,7 @@ export default function LandingPage() {
     { q: "Is there any penalty for late repayment?", a: "Yes, late repayment may incur additional charges. Please contact us to discuss your situation." },
   ];
 
+  // Helper to scroll to section
   const scrollToSection = (id) => {
     setMobileMenuOpen(false); 
     const element = document.getElementById(id);
@@ -156,12 +160,12 @@ export default function LandingPage() {
         
         <div className="container mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
           
-          {/* Hero Image - UPDATED to two black men transaction/deal */}
+          {/* Hero Image - UPDATED: Two Black men in a business transaction/deal */}
           <div className="hidden lg:block relative">
              <div className="absolute -inset-2 bg-[#b8860b] rounded-lg opacity-20 blur-lg"></div>
              <div className="border-4 border-white rounded-lg shadow-2xl overflow-hidden">
                 <img 
-                  src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=1000&auto=format&fit=crop" 
+                  src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=1000&auto=format&fit=crop" 
                   alt="Business Transaction" 
                   className="w-full h-[450px] object-cover"
                 />
@@ -177,10 +181,11 @@ export default function LandingPage() {
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">How much do you need?</label>
                 <div className="relative">
                   <span className="absolute left-3 top-3.5 font-bold text-gray-400">K</span>
+                  {/* FIX: Input now allows empty string to avoid '0' sticking */}
                   <input 
                     type="number" 
                     value={amount} 
-                    onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))} 
+                    onChange={(e) => setAmount(e.target.value === "" ? "" : Number(e.target.value))} 
                     className="w-full p-4 pl-8 border-2 border-gray-100 rounded bg-gray-50 focus:border-[#15803d] text-2xl font-black text-[#0e2a47] outline-none transition-all" 
                   />
                 </div>
@@ -213,7 +218,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex justify-between text-xs font-bold text-[#15803d] uppercase">
                   <span>You Receive</span>
-                  <span>K {(safeAmount - serviceFee).toFixed(2)}</span>
+                  <span>K {(numericAmount - serviceFee).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center text-gray-900 border-t border-green-200 pt-3">
                   <span className="text-sm font-black uppercase">Total Repayment</span>
