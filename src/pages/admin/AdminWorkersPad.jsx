@@ -6,6 +6,9 @@ export default function AdminWorkersPad() {
   const [workers, setWorkers] = useState([]);
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // New State for the Modal
+  const [selectedProfile, setSelectedProfile] = useState(null);
 
   // --- REAL-TIME DATA FETCHING ---
   useEffect(() => {
@@ -17,15 +20,12 @@ export default function AdminWorkersPad() {
   }, []);
 
   const fetchData = async () => {
-    // Fetch profiles where role is admin (worker) or partner (agent)
     const { data } = await supabase
       .from('profiles')
       .select('*')
-      .in('role', ['admin', 'partner', 'super_admin']); // Assuming super_admin is also a worker
+      .in('role', ['admin', 'partner', 'super_admin']);
 
     if (data) {
-      // Filter into categories
-      // Note: In your system 'admin' = Worker, 'partner' = Agent
       setWorkers(data.filter(u => u.role === 'admin' || u.role === 'super_admin'));
       setAgents(data.filter(u => u.role === 'partner'));
     }
@@ -37,7 +37,11 @@ export default function AdminWorkersPad() {
   };
 
   const renderCard = (user, type) => (
-    <div key={user.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+    <div 
+      key={user.id} 
+      onClick={() => setSelectedProfile(user)} // <--- CLICK TO OPEN MODAL
+      className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all cursor-pointer transform hover:-translate-y-1"
+    >
       <div className={`h-2 ${type === 'WORKER' ? 'bg-purple-600' : 'bg-emerald-600'}`}></div>
       <div className="p-6 space-y-4">
         {/* Header */}
@@ -53,55 +57,22 @@ export default function AdminWorkersPad() {
           </div>
         </div>
 
-        {/* Details List */}
+        {/* Preview Details */}
         <div className="space-y-2 text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> 
+          <div className="flex items-center gap-2 truncate">
+            <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> 
             {user.email}
           </div>
           <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg> 
+            <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg> 
             {user.phone || 'N/A'}
-          </div>
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> 
-            {user.address || 'N/A'}
-          </div>
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg> 
-            {user.gender || 'Not specified'} • {user.marital_status || 'N/A'}
-          </div>
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg> 
-            DOB: {user.dob || 'N/A'}
           </div>
         </div>
 
-        {/* Salary Section (Workers Only) */}
-        {type === 'WORKER' && (
-          <div className="pt-4 border-t border-gray-100">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-500">Salary</span>
-              <span className="font-bold text-gray-900 flex items-center gap-1">
-                <svg className="w-3 h-3 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                {formatCurrency(user.salary || 0)}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Parent/Guardian Contacts */}
-        {user.parent_contacts && user.parent_contacts.length > 0 && (
-          <div className="bg-gray-50 p-3 rounded-lg text-xs">
-            <p className="font-bold text-gray-500 uppercase mb-1">Guardian / Next of Kin</p>
-            {user.parent_contacts.map((p, i) => (
-              <div key={i} className="flex justify-between">
-                <span>{p.name} ({p.relationship})</span>
-                <span className="text-gray-500">{p.phoneNumber}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* View More Indication */}
+        <div className="pt-2 text-xs text-indigo-500 font-bold uppercase tracking-wider text-right">
+          View Full Details →
+        </div>
       </div>
     </div>
   );
@@ -140,6 +111,80 @@ export default function AdminWorkersPad() {
           <div className="col-span-full p-12 text-center text-gray-400">No records found.</div>
         )}
       </div>
+
+      {/* --- DETAIL MODAL (Pop-up when card is clicked) --- */}
+      {selectedProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedProfile(null)}>
+          <div 
+            className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()} // Prevent closing when clicking inside
+          >
+            {/* Modal Header */}
+            <div className={`p-6 text-white flex justify-between items-start ${selectedProfile.role === 'partner' ? 'bg-emerald-600' : 'bg-purple-600'}`}>
+               <div>
+                  <h3 className="text-2xl font-bold">{selectedProfile.full_name}</h3>
+                  <p className="text-white/80 text-sm uppercase tracking-wider font-bold mt-1">
+                    {selectedProfile.role === 'partner' ? 'Field Agent' : selectedProfile.position || 'Staff Member'}
+                  </p>
+               </div>
+               <button onClick={() => setSelectedProfile(null)} className="text-white/70 hover:text-white">
+                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+               </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+               
+               {/* Contact Info */}
+               <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1">Contact Information</h4>
+                  <div className="grid grid-cols-1 gap-2 text-sm text-gray-700">
+                     <p className="flex items-center gap-2"><span className="font-bold w-20">Email:</span> {selectedProfile.email}</p>
+                     <p className="flex items-center gap-2"><span className="font-bold w-20">Phone:</span> {selectedProfile.phone || 'N/A'}</p>
+                     <p className="flex items-center gap-2"><span className="font-bold w-20">Address:</span> {selectedProfile.address || 'N/A'}</p>
+                  </div>
+               </div>
+
+               {/* Personal Info */}
+               <div className="space-y-3">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1">Personal Details</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-700">
+                     <p><span className="font-bold block text-gray-500 text-xs">Gender</span> {selectedProfile.gender || 'N/A'}</p>
+                     <p><span className="font-bold block text-gray-500 text-xs">Marital Status</span> {selectedProfile.marital_status || 'N/A'}</p>
+                     <p><span className="font-bold block text-gray-500 text-xs">Date of Birth</span> {selectedProfile.dob || 'N/A'}</p>
+                     
+                     {/* Show Salary only for Workers */}
+                     {(selectedProfile.role === 'admin' || selectedProfile.role === 'super_admin') && (
+                        <p><span className="font-bold block text-gray-500 text-xs">Salary</span> <span className="text-green-600 font-mono font-bold">{formatCurrency(selectedProfile.salary || 0)}</span></p>
+                     )}
+                  </div>
+               </div>
+
+               {/* Next of Kin / Guardian */}
+               {selectedProfile.parent_contacts && selectedProfile.parent_contacts.length > 0 && (
+                 <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1">Guardians / Next of Kin</h4>
+                    {selectedProfile.parent_contacts.map((p, i) => (
+                      <div key={i} className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm">
+                         <p className="font-bold text-gray-900">{p.name}</p>
+                         <p className="text-gray-500 text-xs">{p.relationship} • {p.phoneNumber}</p>
+                      </div>
+                    ))}
+                 </div>
+               )}
+
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+               <button onClick={() => setSelectedProfile(null)} className="px-6 py-2 bg-white border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-100">
+                 Close
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
