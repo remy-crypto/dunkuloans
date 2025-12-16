@@ -10,6 +10,7 @@ export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // --- LIVE CALCULATOR STATE ---
+  // Fix: Default is 500, but logic handles empty string so '0' doesn't get stuck
   const [amount, setAmount] = useState(500);
   const [weeks, setWeeks] = useState(4); 
   
@@ -43,19 +44,19 @@ export default function LandingPage() {
     },
     {
       title: "MARKETEERS LOANS",
-      // Image: African market woman with produce (Authentic context)
+      // Image: African market woman with produce
       image: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?q=80&w=800&auto=format&fit=crop", 
       desc: "Empowering small scale traders to grow their stock daily."
     },
     {
       title: "ITEM LOANS",
-      // Image: Black individual using technology/laptop
+      // Image: Black individual using technology
       image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop", 
       desc: "Get the latest gadgets and appliances on flexible credit."
     },
     {
       title: "BUSINESS LOANS",
-      // Image: Black entrepreneurs discussing business
+      // Image: Black entrepreneurs
       image: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=800&auto=format&fit=crop", 
       desc: "Scalable capital for registered business entities."
     }
@@ -160,13 +161,13 @@ export default function LandingPage() {
         
         <div className="container mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
           
-          {/* Hero Image - UPDATED: Two Black men in a business transaction/deal */}
+          {/* Hero Image - UPDATED: Pointing to local file 'zambian-deal.jpg' in public folder */}
           <div className="hidden lg:block relative">
              <div className="absolute -inset-2 bg-[#b8860b] rounded-lg opacity-20 blur-lg"></div>
              <div className="border-4 border-white rounded-lg shadow-2xl overflow-hidden">
                 <img 
-                  src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=1000&auto=format&fit=crop" 
-                  alt="Business Transaction" 
+                  src="/zambian-deal.jpg" 
+                  alt="Zambian Business Transaction" 
                   className="w-full h-[450px] object-cover"
                 />
              </div>
