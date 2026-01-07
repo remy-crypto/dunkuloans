@@ -6,13 +6,6 @@ import { useAuth } from "../../context/AuthContext";
 // --- LOAN PRODUCT CONFIGURATION ---
 const products = [
   {
-    id: "personal", // <--- THIS ID MUST MATCH EXACTLY BELOW
-    title: "Personal / Collateral Loan",
-    desc: "Quick cash against assets. 19-40% interest (1-4 weeks).",
-    icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
-    reqs: ["Valid NRC & Selfie (KYC Tier 2)", "Collateral Item (Laptop, Car, etc)", "Proof of Ownership"]
-  },
-  {
     id: "marketeer",
     title: "Marketeer Group Loan",
     desc: "Group of 3-10. Daily repayments. 1.67% daily interest.",
@@ -27,6 +20,13 @@ const products = [
     reqs: ["Valid NRC & Selfie (KYC Tier 2)", "Active Mobile Money Account", "Business Registration (PACRA)"]
   },
   {
+    id: "personal",
+    title: "Personal / Collateral",
+    desc: "Quick cash against assets. 19-40% interest (1-4 weeks).",
+    icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+    reqs: ["Valid NRC & Selfie (KYC Tier 2)", "Collateral Item (Laptop, Car, etc)", "Proof of Ownership"]
+  },
+  {
     id: "item",
     title: "Item Loan",
     desc: "Get phones, TVs, and gadgets on credit.",
@@ -35,11 +35,12 @@ const products = [
   }
 ];
 
+// Mock Items
 const gadgetItems = [
-  { id: 1, name: "Samsung Galaxy A14", specs: "64GB, Black", price: 3500, img: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?auto=format&fit=crop&w=400&q=80" },
-  { id: 2, name: "iPhone 11 (Refurbished)", specs: "128GB, White", price: 6500, img: "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=400&q=80" },
-  { id: 3, name: "Hisense 32\" Smart TV", specs: "HD, Netflix Ready", price: 2800, img: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?auto=format&fit=crop&w=400&q=80" },
-  { id: 4, name: "HP Laptop 15\"", specs: "Core i3, 8GB RAM", price: 8000, img: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=400&q=80" }
+  { id: 1, name: "Samsung Galaxy A14", specs: "64GB, Black", price: 3500, img: "https://images.samsung.com/is/image/samsung/p6pim/za/a145fzkdafa/gallery/za-galaxy-a14-a145-sm-a145fzkdafa-thumb-536248906" },
+  { id: 2, name: "iPhone 11 (Refurbished)", specs: "128GB, White", price: 6500, img: "https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP804/sp804-iphone11_2x.png" },
+  { id: 3, name: "Hisense 32\" Smart TV", specs: "HD, Netflix Ready", price: 2800, img: "https://m.media-amazon.com/images/I/71L-l+4-eHL._AC_SL1500_.jpg" },
+  { id: 4, name: "HP Laptop 15\"", specs: "Core i3, 8GB RAM", price: 8000, img: "https://ssl-product-images.www8-hp.com/digmedialib/prodimg/lowres/c06746864.png" }
 ];
 
 export default function ApplyLoan() {
@@ -62,8 +63,8 @@ export default function ApplyLoan() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [months, setMonths] = useState(3);
 
-  // Personal Loan State
-  const [weeks, setWeeks] = useState(4); 
+  // Personal Loan State (New)
+  const [weeks, setWeeks] = useState(4); // Default 4 weeks
 
   // File Uploads State
   const [files, setFiles] = useState({}); 
@@ -132,7 +133,7 @@ export default function ApplyLoan() {
       if (!selectedItem) return alert("Please select an item");
       finalAmount = selectedItem.price;
       finalDescription = `Item Loan: ${selectedItem.name} (${selectedItem.specs})`;
-      calculatedRepayment = Number(finalAmount) * 1.4; 
+      calculatedRepayment = Number(finalAmount) * 1.4; // 40% Interest
 
     } else if (selectedProduct.id === "marketeer") {
       finalDescription = `Group Loan (${groupMembers.length} members): ` + JSON.stringify(groupMembers.map(m=>m.name));
@@ -141,12 +142,14 @@ export default function ApplyLoan() {
     } else if (selectedProduct.id === "business") {
       const fileSummary = Object.entries(files).map(([key, url]) => `${key}: ${url}`).join("\n");
       finalDescription = `Business Loan.\nDocs:\n${fileSummary}`;
-      calculatedRepayment = Number(finalAmount) * 1.15; 
+      calculatedRepayment = Number(finalAmount) * 1.15; // 15% Interest
 
     } else if (selectedProduct.id === "personal") {
+      // Personal Loan Logic
       const rates = { 1: 0.19, 2: 0.26, 3: 0.33, 4: 0.40 };
       const rate = rates[weeks] || 0.40;
       calculatedRepayment = Number(finalAmount) * (1 + rate);
+      
       const fileSummary = Object.entries(files).map(([key, url]) => `${key}: ${url}`).join("\n");
       finalDescription = `Personal Loan (${weeks} Weeks).\nCollateral: ${description}\nFiles: ${fileSummary}`;
     }
@@ -157,6 +160,7 @@ export default function ApplyLoan() {
     }
 
     try {
+      // Create Loan
       const { data: loanData, error: loanError } = await supabase
         .from("loans")
         .insert([
@@ -173,6 +177,7 @@ export default function ApplyLoan() {
 
       if (loanError) throw loanError;
 
+      // Add Collateral Entry
       await supabase
         .from("collateral")
         .insert([{
@@ -193,80 +198,6 @@ export default function ApplyLoan() {
   };
 
   // --- RENDER FORMS ---
-  const renderPersonalForm = () => (
-    <div className="space-y-6">
-      <div>
-        <label className="block text-sm text-gray-400 mb-2">Requested Amount (ZMW)</label>
-        <input 
-          type="number" 
-          className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-indigo-500"
-          value={amount} 
-          onChange={(e) => setAmount(e.target.value)} 
-          placeholder="0.00"
-        />
-      </div>
-
-      <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
-        <div className="flex justify-between text-sm text-gray-300 mb-2">
-           <span className="font-bold">Duration</span>
-           <span className="text-indigo-400 font-bold">{weeks} Weeks</span>
-        </div>
-        <input 
-          type="range" min="1" max="4" step="1" 
-          value={weeks} 
-          onChange={(e) => setWeeks(Number(e.target.value))}
-          className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-        />
-        <div className="flex justify-between text-xs text-gray-500 mt-2">
-           <span>1 Week (19%)</span>
-           <span>4 Weeks (40%)</span>
-        </div>
-        
-        {amount && (
-           <div className="mt-4 pt-4 border-t border-gray-700 flex justify-between items-center">
-              <span className="text-gray-400 text-sm">Total Repayment:</span>
-              <span className="text-xl font-bold text-green-400">
-                K {(Number(amount) * (1 + ({1: 0.19, 2: 0.26, 3: 0.33, 4: 0.40}[weeks] || 0.40))).toLocaleString(undefined, {maximumFractionDigits: 2})}
-              </span>
-           </div>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-sm text-gray-400 mb-2">Collateral Description</label>
-        <textarea 
-          className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-indigo-500" 
-          rows="3" 
-          value={description} 
-          onChange={e=>setDescription(e.target.value)}
-          placeholder="Describe the item you are securing this loan with..."
-        ></textarea>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {["Collateral Image 1", "Collateral Image 2", "Proof of Ownership"].map(doc => (
-          <div key={doc} className="bg-gray-800 border border-gray-700 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-center hover:bg-gray-750 transition">
-            <p className="text-gray-300 text-sm font-medium mb-2">{doc}</p>
-            {files[doc] ? (
-              <div className="flex flex-col items-center gap-2">
-                <span className="text-xs text-green-500 font-bold">✓ Uploaded</span>
-                <a href={files[doc]} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 underline">View</a>
-              </div>
-            ) : (
-              <button 
-                onClick={() => handleUploadClick(doc)}
-                disabled={uploadingDoc === doc}
-                className={`px-4 py-1.5 rounded text-xs font-bold transition flex items-center gap-2 ${uploadingDoc === doc ? 'bg-yellow-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
-              >
-                {uploadingDoc === doc ? "Uploading..." : "↑ UPLOAD"}
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
   const renderBusinessForm = () => (
     <div className="space-y-6">
        <div>
@@ -432,13 +363,88 @@ export default function ApplyLoan() {
 
             {step === 2 && (
               <div className="bg-gray-800 border border-gray-700 rounded-xl p-8">
-                {/* Dynamically render forms based on product type */}
                 {selectedProduct.id === 'marketeer' && renderMarketeerForm()}
                 {selectedProduct.id === 'business' && renderBusinessForm()}
                 {selectedProduct.id === 'item' && renderItemForm()}
                 
-                {/* --- FIX: ENSURE PERSONAL FORM IS CALLED --- */}
-                {selectedProduct.id === 'personal' && renderPersonalForm()}
+                {/* --- PERSONAL LOAN FORM --- */}
+                {selectedProduct.id === 'personal' && (
+                  <div className="space-y-6">
+                    {/* Amount */}
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-2">Requested Amount (ZMW)</label>
+                      <input 
+                        type="number" 
+                        className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-indigo-500"
+                        value={amount} 
+                        onChange={(e) => setAmount(e.target.value)} 
+                        placeholder="0.00"
+                      />
+                    </div>
+
+                    {/* Weeks Slider */}
+                    <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+                      <div className="flex justify-between text-sm text-gray-300 mb-2">
+                         <span className="font-bold">Duration</span>
+                         <span className="text-indigo-400 font-bold">{weeks} Weeks</span>
+                      </div>
+                      <input 
+                        type="range" min="1" max="4" step="1" 
+                        value={weeks} 
+                        onChange={(e) => setWeeks(Number(e.target.value))}
+                        className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500 mt-2">
+                         <span>1 Week (19%)</span>
+                         <span>4 Weeks (40%)</span>
+                      </div>
+                      
+                      {amount && (
+                         <div className="mt-4 pt-4 border-t border-gray-700 flex justify-between items-center">
+                            <span className="text-gray-400 text-sm">Total Repayment:</span>
+                            <span className="text-xl font-bold text-green-400">
+                              K {(Number(amount) * (1 + ({1: 0.19, 2: 0.26, 3: 0.33, 4: 0.40}[weeks] || 0.40))).toLocaleString(undefined, {maximumFractionDigits: 2})}
+                            </span>
+                         </div>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-2">Collateral Description</label>
+                      <textarea 
+                        className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-indigo-500" 
+                        rows="3" 
+                        value={description} 
+                        onChange={e=>setDescription(e.target.value)}
+                        placeholder="Describe the item you are securing this loan with..."
+                      ></textarea>
+                    </div>
+
+                    {/* Uploads */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {["Collateral Image 1", "Collateral Image 2", "Proof of Ownership"].map(doc => (
+                        <div key={doc} className="bg-gray-800 border border-gray-700 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-center hover:bg-gray-750 transition">
+                          <p className="text-gray-300 text-sm font-medium mb-2">{doc}</p>
+                          {files[doc] ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <span className="text-xs text-green-500 font-bold">✓ Uploaded</span>
+                              <a href={files[doc]} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 underline hover:text-indigo-300">View</a>
+                            </div>
+                          ) : (
+                            <button 
+                              onClick={() => handleUploadClick(doc)}
+                              disabled={uploadingDoc === doc}
+                              className={`px-4 py-1.5 rounded text-xs font-bold transition flex items-center gap-2 ${uploadingDoc === doc ? 'bg-yellow-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
+                            >
+                              {uploadingDoc === doc ? "Uploading..." : "↑ UPLOAD"}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex gap-4 pt-8">
                   <button onClick={() => setStep(1)} className="px-6 py-2.5 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700">Back</button>
