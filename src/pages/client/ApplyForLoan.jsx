@@ -35,12 +35,12 @@ const products = [
   }
 ];
 
-// Mock Items
+// --- FIXED GADGET IMAGES (Stable URLs) ---
 const gadgetItems = [
-  { id: 1, name: "Samsung Galaxy A14", specs: "64GB, Black", price: 3500, img: "https://images.samsung.com/is/image/samsung/p6pim/za/a145fzkdafa/gallery/za-galaxy-a14-a145-sm-a145fzkdafa-thumb-536248906" },
-  { id: 2, name: "iPhone 11 (Refurbished)", specs: "128GB, White", price: 6500, img: "https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP804/sp804-iphone11_2x.png" },
-  { id: 3, name: "Hisense 32\" Smart TV", specs: "HD, Netflix Ready", price: 2800, img: "https://m.media-amazon.com/images/I/71L-l+4-eHL._AC_SL1500_.jpg" },
-  { id: 4, name: "HP Laptop 15\"", specs: "Core i3, 8GB RAM", price: 8000, img: "https://ssl-product-images.www8-hp.com/digmedialib/prodimg/lowres/c06746864.png" }
+  { id: 1, name: "Samsung Galaxy A14", specs: "64GB, Black", price: 3500, img: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?auto=format&fit=crop&w=400&q=80" },
+  { id: 2, name: "iPhone 11 (Refurbished)", specs: "128GB, White", price: 6500, img: "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=400&q=80" },
+  { id: 3, name: "Hisense 32\" Smart TV", specs: "HD, Netflix Ready", price: 2800, img: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?auto=format&fit=crop&w=400&q=80" },
+  { id: 4, name: "HP Laptop 15\"", specs: "Core i3, 8GB RAM", price: 8000, img: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=400&q=80" }
 ];
 
 export default function ApplyLoan() {
@@ -63,13 +63,15 @@ export default function ApplyLoan() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [months, setMonths] = useState(3);
 
-  // Business Uploads State
-  const [files, setFiles] = useState({}); // Stores URLs
-  const [uploadingDoc, setUploadingDoc] = useState(null); // Tracks which doc is uploading
+  // Personal Loan State
+  const [weeks, setWeeks] = useState(4); 
+
+  // File Uploads State
+  const [files, setFiles] = useState({}); 
+  const [uploadingDoc, setUploadingDoc] = useState(null); 
   
-  // File Input Ref
   const fileInputRef = useRef(null);
-  const [currentDocType, setCurrentDocType] = useState(null); // Tracks which button clicked
+  const [currentDocType, setCurrentDocType] = useState(null); 
 
   // --- HANDLERS ---
   const handleSelectProduct = (product) => {
@@ -79,6 +81,7 @@ export default function ApplyLoan() {
     setGroupMembers([]);
     setSelectedItem(null);
     setFiles({});
+    setWeeks(4);
   };
 
   const handleAddMember = () => {
@@ -87,13 +90,11 @@ export default function ApplyLoan() {
     setNewMember({ name: "", nrc: "", phone: "", income: "", market: "", reason: "", address: "" });
   };
 
-  // 1. Trigger File Picker
   const handleUploadClick = (docType) => {
     setCurrentDocType(docType);
     fileInputRef.current.click();
   };
 
-  // 2. Handle File Selection & Upload
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
     if (!file || !currentDocType) return;
@@ -106,10 +107,8 @@ export default function ApplyLoan() {
 
       if (error) throw error;
 
-      // Get Public URL
       const { data: urlData } = supabase.storage.from("loan_docs").getPublicUrl(fileName);
       
-      // Update State
       setFiles(prev => ({
         ...prev,
         [currentDocType]: urlData.publicUrl
@@ -119,7 +118,6 @@ export default function ApplyLoan() {
       alert("Upload failed: " + err.message);
     } finally {
       setUploadingDoc(null);
-      // Reset input so same file can be selected again if needed
       if(fileInputRef.current) fileInputRef.current.value = ""; 
     }
   };
@@ -128,17 +126,32 @@ export default function ApplyLoan() {
     setLoading(true);
     let finalAmount = amount;
     let finalDescription = description;
+    let calculatedRepayment = 0;
 
+    // Logic per loan type
     if (selectedProduct.id === "item") {
       if (!selectedItem) return alert("Please select an item");
       finalAmount = selectedItem.price;
       finalDescription = `Item Loan: ${selectedItem.name} (${selectedItem.specs})`;
+      calculatedRepayment = Number(finalAmount) * 1.4; // 40% Interest
+
     } else if (selectedProduct.id === "marketeer") {
       finalDescription = `Group Loan (${groupMembers.length} members): ` + JSON.stringify(groupMembers.map(m=>m.name));
+      calculatedRepayment = Number(finalAmount) * 1.4; 
+
     } else if (selectedProduct.id === "business") {
-      // Save uploaded file URLs in description (or a separate JSON column if available)
       const fileSummary = Object.entries(files).map(([key, url]) => `${key}: ${url}`).join("\n");
       finalDescription = `Business Loan.\nDocs:\n${fileSummary}`;
+      calculatedRepayment = Number(finalAmount) * 1.15; // 15% Interest
+
+    } else if (selectedProduct.id === "personal") {
+      // Personal Loan Logic
+      const rates = { 1: 0.19, 2: 0.26, 3: 0.33, 4: 0.40 };
+      const rate = rates[weeks] || 0.40;
+      calculatedRepayment = Number(finalAmount) * (1 + rate);
+      
+      const fileSummary = Object.entries(files).map(([key, url]) => `${key}: ${url}`).join("\n");
+      finalDescription = `Personal Loan (${weeks} Weeks).\nCollateral: ${description}\nFiles: ${fileSummary}`;
     }
 
     if (!finalAmount || Number(finalAmount) <= 0) {
@@ -155,8 +168,8 @@ export default function ApplyLoan() {
             borrower_id: user.id,
             amount: Number(finalAmount),
             status: "pending",
-            total_repayment: Number(finalAmount) * 1.4,
-            balance: Number(finalAmount) * 1.4
+            total_repayment: calculatedRepayment,
+            balance: calculatedRepayment
           }
         ])
         .select()
@@ -164,7 +177,7 @@ export default function ApplyLoan() {
 
       if (loanError) throw loanError;
 
-      // Add Collateral/Description Entry
+      // Add Collateral Entry
       await supabase
         .from("collateral")
         .insert([{
@@ -186,24 +199,65 @@ export default function ApplyLoan() {
 
   // --- RENDER FORMS ---
   
-  // Business Form with Real Uploads
-  const renderBusinessForm = () => (
+  // 1. PERSONAL LOAN FORM
+  const renderPersonalForm = () => (
     <div className="space-y-6">
-       <div>
-        <label className="block text-sm text-gray-400 mb-2">Requested Capital (ZMW)</label>
-        <input type="number" className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-indigo-500"
-          value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
+      <div>
+        <label className="block text-sm text-gray-400 mb-2">Requested Amount (ZMW)</label>
+        <input 
+          type="number" 
+          className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-indigo-500"
+          value={amount} 
+          onChange={(e) => setAmount(e.target.value)} 
+          placeholder="0.00"
+        />
       </div>
-      
+
+      <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+        <div className="flex justify-between text-sm text-gray-300 mb-2">
+           <span className="font-bold">Duration</span>
+           <span className="text-indigo-400 font-bold">{weeks} Weeks</span>
+        </div>
+        <input 
+          type="range" min="1" max="4" step="1" 
+          value={weeks} 
+          onChange={(e) => setWeeks(Number(e.target.value))}
+          className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+        />
+        <div className="flex justify-between text-xs text-gray-500 mt-2">
+           <span>1 Week (19%)</span>
+           <span>4 Weeks (40%)</span>
+        </div>
+        
+        {amount && (
+           <div className="mt-4 pt-4 border-t border-gray-700 flex justify-between items-center">
+              <span className="text-gray-400 text-sm">Total Repayment:</span>
+              <span className="text-xl font-bold text-green-400">
+                K {(Number(amount) * (1 + ({1: 0.19, 2: 0.26, 3: 0.33, 4: 0.40}[weeks] || 0.40))).toLocaleString(undefined, {maximumFractionDigits: 2})}
+              </span>
+           </div>
+        )}
+      </div>
+
+      <div>
+        <label className="block text-sm text-gray-400 mb-2">Collateral Description</label>
+        <textarea 
+          className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-indigo-500" 
+          rows="3" 
+          value={description} 
+          onChange={e=>setDescription(e.target.value)}
+          placeholder="Describe the item you are securing this loan with..."
+        ></textarea>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {["Registration", "Business Plan", "Financial Statements", "Tax Compliance", "Collateral Docs", "Personal Ids", "Bank Statements", "Project Proposal"].map(doc => (
+        {["Collateral Image 1", "Collateral Image 2", "Proof of Ownership"].map(doc => (
           <div key={doc} className="bg-gray-800 border border-gray-700 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-center hover:bg-gray-750 transition">
             <p className="text-gray-300 text-sm font-medium mb-2">{doc}</p>
-            
             {files[doc] ? (
               <div className="flex flex-col items-center gap-2">
                 <span className="text-xs text-green-500 font-bold">✓ Uploaded</span>
-                <a href={files[doc]} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 underline hover:text-indigo-300">View File</a>
+                <a href={files[doc]} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 underline">View</a>
               </div>
             ) : (
               <button 
@@ -211,27 +265,39 @@ export default function ApplyLoan() {
                 disabled={uploadingDoc === doc}
                 className={`px-4 py-1.5 rounded text-xs font-bold transition flex items-center gap-2 ${uploadingDoc === doc ? 'bg-yellow-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
               >
-                {uploadingDoc === doc ? (
-                  <>
-                    <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    Uploading...
-                  </>
-                ) : (
-                  "↑ UPLOAD FILE"
-                )}
+                {uploadingDoc === doc ? "Uploading..." : "↑ UPLOAD"}
               </button>
             )}
           </div>
         ))}
       </div>
-      {/* Hidden Input for File Handling */}
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleFileChange} 
-        className="hidden" 
-        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-      />
+    </div>
+  );
+
+  const renderBusinessForm = () => (
+    <div className="space-y-6">
+       <div>
+        <label className="block text-sm text-gray-400 mb-2">Requested Capital (ZMW)</label>
+        <input type="number" className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-indigo-500"
+          value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {["Registration", "Business Plan", "Financial Statements", "Tax Compliance", "Collateral Docs", "Personal Ids", "Bank Statements", "Project Proposal"].map(doc => (
+          <div key={doc} className="bg-gray-800 border border-gray-700 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-center hover:bg-gray-750 transition">
+            <p className="text-gray-300 text-sm font-medium mb-2">{doc}</p>
+            {files[doc] ? (
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-xs text-green-500 font-bold">✓ Uploaded</span>
+                <a href={files[doc]} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 underline hover:text-indigo-300">View File</a>
+              </div>
+            ) : (
+              <button onClick={() => handleUploadClick(doc)} disabled={uploadingDoc === doc} className={`px-4 py-1.5 rounded text-xs font-bold transition flex items-center gap-2 ${uploadingDoc === doc ? 'bg-yellow-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}>
+                {uploadingDoc === doc ? "Uploading..." : "↑ UPLOAD FILE"}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 
@@ -242,7 +308,6 @@ export default function ApplyLoan() {
         <input type="number" className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-indigo-500"
           value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
       </div>
-
       <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
         <h4 className="font-bold text-white mb-4 border-b border-gray-700 pb-2">ADD NEW MEMBER</h4>
         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -255,7 +320,6 @@ export default function ApplyLoan() {
           <input className="col-span-2 bg-gray-900 border border-gray-600 rounded p-2 text-white text-sm" placeholder="Residential Address" value={newMember.address} onChange={e=>setNewMember({...newMember, address: e.target.value})} />
         </div>
         <button onClick={handleAddMember} className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded font-medium">+ Add Member</button>
-        
         {groupMembers.length > 0 && (
           <div className="mt-4 space-y-2">
             {groupMembers.map((m, i) => (
@@ -378,18 +442,7 @@ export default function ApplyLoan() {
                 {selectedProduct.id === 'marketeer' && renderMarketeerForm()}
                 {selectedProduct.id === 'business' && renderBusinessForm()}
                 {selectedProduct.id === 'item' && renderItemForm()}
-                {selectedProduct.id === 'personal' && (
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm text-gray-400 mb-2">Requested Amount (ZMW)</label>
-                      <input type="number" className="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white" value={amount} onChange={e=>setAmount(e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-gray-400 mb-2">Collateral Description</label>
-                      <textarea className="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white" rows="3" value={description} onChange={e=>setDescription(e.target.value)}></textarea>
-                    </div>
-                  </div>
-                )}
+                {selectedProduct.id === 'personal' && renderPersonalForm()}
 
                 <div className="flex gap-4 pt-8">
                   <button onClick={() => setStep(1)} className="px-6 py-2.5 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700">Back</button>
@@ -415,6 +468,12 @@ export default function ApplyLoan() {
                     <div className="flex justify-between border-b border-gray-800 pb-4">
                         <span className="text-gray-400">Amount</span>
                         <span className="font-medium text-white">K {Number(amount).toLocaleString()}</span>
+                     </div>
+                  )}
+                  {selectedProduct.id === 'personal' && (
+                     <div className="flex justify-between border-b border-gray-800 pb-4">
+                        <span className="text-gray-400">Duration</span>
+                        <span className="font-medium text-white">{weeks} Weeks (Rate: {({1:19,2:26,3:33,4:40}[weeks])}%)</span>
                      </div>
                   )}
                   {selectedProduct.id === 'marketeer' && (
@@ -460,6 +519,15 @@ export default function ApplyLoan() {
 
         </div>
       </div>
+      
+      {/* File Input (Hidden) */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        className="hidden" 
+        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+      />
     </div>
   );
 }
