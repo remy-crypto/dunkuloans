@@ -21,7 +21,7 @@ const products = [
   },
   {
     id: "personal",
-    title: "Personal / Collateral (LIVE)", // <--- VISUAL CHECK
+    title: "Personal / Collateral",
     desc: "Quick cash against assets. 19-40% interest (1-4 weeks).",
     icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
     reqs: ["Valid NRC & Selfie (KYC Tier 2)", "Collateral Item (Laptop, Car, etc)", "Proof of Ownership"]
@@ -35,12 +35,10 @@ const products = [
   }
 ];
 
-// Mock Items
+// Mock Items for Item Loan
 const gadgetItems = [
   { id: 1, name: "Samsung Galaxy A14", specs: "64GB, Black", price: 3500, img: "https://images.samsung.com/is/image/samsung/p6pim/za/a145fzkdafa/gallery/za-galaxy-a14-a145-sm-a145fzkdafa-thumb-536248906" },
   { id: 2, name: "iPhone 11 (Refurbished)", specs: "128GB, White", price: 6500, img: "https://support.apple.com/library/APPLE/APPLECARE_ALLGEOS/SP804/sp804-iphone11_2x.png" },
-  { id: 3, name: "Hisense 32\" Smart TV", specs: "HD, Netflix Ready", price: 2800, img: "https://m.media-amazon.com/images/I/71L-l+4-eHL._AC_SL1500_.jpg" },
-  { id: 4, name: "HP Laptop 15\"", specs: "Core i3, 8GB RAM", price: 8000, img: "https://ssl-product-images.www8-hp.com/digmedialib/prodimg/lowres/c06746864.png" }
 ];
 
 export default function ApplyLoan() {
@@ -57,8 +55,7 @@ export default function ApplyLoan() {
   
   // Marketeer State
   const [groupMembers, setGroupMembers] = useState([]);
-  const [newMember, setNewMember] = useState({ name: "", nrc: "", phone: "", income: "", market: "", reason: "", address: "" });
-
+  
   // Item Loan State
   const [selectedItem, setSelectedItem] = useState(null);
   const [months, setMonths] = useState(3);
@@ -84,15 +81,16 @@ export default function ApplyLoan() {
     setWeeks(4);
   };
 
-  const handleAddMember = () => {
-    if(!newMember.name || !newMember.nrc) return alert("Name and NRC required");
-    setGroupMembers([...groupMembers, newMember]);
-    setNewMember({ name: "", nrc: "", phone: "", income: "", market: "", reason: "", address: "" });
-  };
-
   const handleUploadClick = (docType) => {
     setCurrentDocType(docType);
-    fileInputRef.current.click();
+    if(fileInputRef.current) fileInputRef.current.click();
+  };
+
+  const handleRemoveFile = (docType, e) => {
+    e.stopPropagation();
+    const newFiles = { ...files };
+    delete newFiles[docType];
+    setFiles(newFiles);
   };
 
   const handleFileChange = async (event) => {
@@ -102,11 +100,15 @@ export default function ApplyLoan() {
     setUploadingDoc(currentDocType);
 
     try {
-      const fileName = `${user.id}/${Date.now()}_${file.name}`;
-      const { data, error } = await supabase.storage.from("loan_docs").upload(fileName, file);
+      // 1. Sanitize file name
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}_${currentDocType.replace(/\s/g, '_')}.${fileExt}`;
 
+      // 2. Upload
+      const { error } = await supabase.storage.from("loan_docs").upload(fileName, file);
       if (error) throw error;
 
+      // 3. Get URL
       const { data: urlData } = supabase.storage.from("loan_docs").getPublicUrl(fileName);
       
       setFiles(prev => ({
@@ -127,28 +129,33 @@ export default function ApplyLoan() {
     let finalAmount = amount;
     let finalDescription = description;
     let calculatedRepayment = 0;
+    let collateralImages = []; // Array to store image URLs for DB
 
+    // --- LOGIC PER PRODUCT ---
     if (selectedProduct.id === "item") {
-      if (!selectedItem) return alert("Please select an item");
+      if (!selectedItem) { setLoading(false); return alert("Please select an item"); }
       finalAmount = selectedItem.price;
       finalDescription = `Item Loan: ${selectedItem.name} (${selectedItem.specs})`;
       calculatedRepayment = Number(finalAmount) * 1.4;
 
     } else if (selectedProduct.id === "marketeer") {
-      finalDescription = `Group Loan (${groupMembers.length} members): ` + JSON.stringify(groupMembers.map(m=>m.name));
+      finalDescription = `Group Loan (${groupMembers.length} members)`;
       calculatedRepayment = Number(finalAmount) * 1.4; 
 
     } else if (selectedProduct.id === "business") {
-      const fileSummary = Object.entries(files).map(([key, url]) => `${key}: ${url}`).join("\n");
-      finalDescription = `Business Loan.\nDocs:\n${fileSummary}`;
+      // Collect business files
+      collateralImages = Object.values(files); 
+      finalDescription = `Business Loan.`;
       calculatedRepayment = Number(finalAmount) * 1.15;
 
     } else if (selectedProduct.id === "personal") {
+      // Collateral Logic
       const rates = { 1: 0.19, 2: 0.26, 3: 0.33, 4: 0.40 };
       const rate = rates[weeks] || 0.40;
       calculatedRepayment = Number(finalAmount) * (1 + rate);
-      const fileSummary = Object.entries(files).map(([key, url]) => `${key}: ${url}`).join("\n");
-      finalDescription = `Personal Loan (${weeks} Weeks).\nCollateral: ${description}\nFiles: ${fileSummary}`;
+      
+      collateralImages = Object.values(files); // Extract just URLs
+      finalDescription = `Personal Loan (${weeks} Weeks).\nCollateral Desc: ${description}`;
     }
 
     if (!finalAmount || Number(finalAmount) <= 0) {
@@ -157,6 +164,7 @@ export default function ApplyLoan() {
     }
 
     try {
+      // 1. Create Loan Record
       const { data: loanData, error: loanError } = await supabase
         .from("loans")
         .insert([
@@ -164,6 +172,7 @@ export default function ApplyLoan() {
             borrower_id: user.id,
             amount: Number(finalAmount),
             status: "pending",
+            type: selectedProduct.id, // Good to track type
             total_repayment: calculatedRepayment,
             balance: calculatedRepayment
           }
@@ -173,18 +182,25 @@ export default function ApplyLoan() {
 
       if (loanError) throw loanError;
 
-      await supabase.from("collateral").insert([{
-          loan_id: loanData.id,
-          description: finalDescription,
-          status: "pending_review",
-          estimated_value: 0
-      }]);
+      // 2. Create Collateral Record
+      // Note: Ensure your 'collateral' table has a 'images' column (jsonb) 
+      // or simply store them in description if you prefer.
+      if (selectedProduct.id === 'personal' || Object.keys(files).length > 0) {
+        await supabase.from("collateral").insert([{
+            loan_id: loanData.id,
+            description: finalDescription,
+            status: "pending_review",
+            estimated_value: 0, 
+            attachments: collateralImages // Requires 'attachments' column in DB (type: jsonb or text[])
+        }]);
+      }
 
       alert("Application Submitted Successfully!");
       navigate("/client");
 
     } catch (err) {
       alert("Error: " + err.message);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -192,7 +208,7 @@ export default function ApplyLoan() {
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-gray-100">
-      <div className="flex-1 p-8 overflow-y-auto">
+      <div className="flex-1 p-4 md:p-8 overflow-y-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">
             {step === 1 ? "Apply for a Loan" : selectedProduct?.title}
@@ -202,7 +218,7 @@ export default function ApplyLoan() {
           </p>
         </div>
 
-        {/* Stepper */}
+        {/* Stepper UI */}
         <div className="flex items-center justify-center mb-12">
           <div className="flex items-center w-full max-w-lg relative">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold z-10 ${step >= 1 ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-400'}`}>1</div>
@@ -210,11 +226,6 @@ export default function ApplyLoan() {
             <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold z-10 ${step >= 2 ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-400'}`}>2</div>
             <div className={`flex-1 h-1 mx-2 ${step >= 3 ? 'bg-indigo-600' : 'bg-gray-700'}`}></div>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold z-10 ${step >= 3 ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-400'}`}>3</div>
-          </div>
-          <div className="absolute flex justify-between w-full max-w-lg pt-12 text-xs font-medium text-gray-400">
-            <span className={step >= 1 ? "text-indigo-400" : ""}>Product</span>
-            <span className={`pl-4 ${step >= 2 ? "text-indigo-400" : ""}`}>Details</span>
-            <span className={step >= 3 ? "text-indigo-400" : ""}>Review</span>
           </div>
         </div>
 
@@ -246,16 +257,16 @@ export default function ApplyLoan() {
 
             {/* STEP 2: DETAILS */}
             {step === 2 && (
-              <div className="bg-gray-800 border border-gray-700 rounded-xl p-8">
+              <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 md:p-8">
                 
-                {/* --- PERSONAL LOAN FORM (INLINE) --- */}
+                {/* --- PERSONAL LOAN FORM (COLLATERAL FEATURE) --- */}
                 {selectedProduct.id === 'personal' && (
                   <div className="space-y-6">
                     <div>
                       <label className="block text-sm text-gray-400 mb-2">Requested Amount (ZMW)</label>
                       <input 
                         type="number" 
-                        className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-indigo-500"
+                        className="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white focus:border-indigo-500 outline-none"
                         value={amount} 
                         onChange={(e) => setAmount(e.target.value)} 
                         placeholder="0.00"
@@ -263,10 +274,10 @@ export default function ApplyLoan() {
                     </div>
 
                     {/* DURATION SLIDER */}
-                    <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+                    <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-6">
                       <div className="flex justify-between text-sm text-gray-300 mb-2">
-                         <span className="font-bold">Duration</span>
-                         <span className="text-indigo-400 font-bold">{weeks} Weeks</span>
+                          <span className="font-bold">Duration</span>
+                          <span className="text-indigo-400 font-bold">{weeks} Weeks</span>
                       </div>
                       <input 
                         type="range" min="1" max="4" step="1" 
@@ -275,82 +286,73 @@ export default function ApplyLoan() {
                         className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                       />
                       <div className="flex justify-between text-xs text-gray-500 mt-2">
-                         <span>1 Week (19%)</span>
-                         <span>4 Weeks (40%)</span>
+                          <span>1 Week (19%)</span>
+                          <span>4 Weeks (40%)</span>
                       </div>
                       
                       {amount && (
-                         <div className="mt-4 pt-4 border-t border-gray-700 flex justify-between items-center">
+                          <div className="mt-4 pt-4 border-t border-gray-700 flex justify-between items-center">
                             <span className="text-gray-400 text-sm">Total Repayment:</span>
                             <span className="text-xl font-bold text-green-400">
                               K {(Number(amount) * (1 + ({1: 0.19, 2: 0.26, 3: 0.33, 4: 0.40}[weeks] || 0.40))).toLocaleString(undefined, {maximumFractionDigits: 2})}
                             </span>
-                         </div>
+                          </div>
                       )}
                     </div>
 
                     <div>
                       <label className="block text-sm text-gray-400 mb-2">Collateral Description</label>
                       <textarea 
-                        className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-indigo-500" 
+                        className="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white focus:border-indigo-500 outline-none" 
                         rows="3" 
                         value={description} 
                         onChange={e=>setDescription(e.target.value)}
-                        placeholder="Describe the item..."
+                        placeholder="E.g., 2021 HP Spectre Laptop, Silver, Serial #12345"
                       ></textarea>
                     </div>
 
-                    {/* UPLOAD BUTTONS */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {["Collateral Image 1", "Collateral Image 2", "Proof of Ownership"].map(doc => (
-                        <div key={doc} className="bg-gray-800 border border-gray-700 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-center hover:bg-gray-750 transition">
-                          <p className="text-gray-300 text-sm font-medium mb-2">{doc}</p>
-                          {files[doc] ? (
-                            <div className="flex flex-col items-center gap-2">
-                              <span className="text-xs text-green-500 font-bold">✓ Uploaded</span>
-                              <a href={files[doc]} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 underline">View</a>
-                            </div>
-                          ) : (
-                            <button 
-                              onClick={() => handleUploadClick(doc)}
-                              disabled={uploadingDoc === doc}
-                              className={`px-4 py-1.5 rounded text-xs font-bold transition flex items-center gap-2 ${uploadingDoc === doc ? 'bg-yellow-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
-                            >
-                              {uploadingDoc === doc ? "Uploading..." : "↑ UPLOAD"}
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* --- BUSINESS FORM (INLINE) --- */}
-                {selectedProduct.id === 'business' && (
-                   <div className="space-y-6">
-                      <div>
-                        <label className="block text-sm text-gray-400 mb-2">Requested Capital (ZMW)</label>
-                        <input type="number" className="w-full bg-gray-800 border border-gray-700 rounded p-3 text-white focus:border-indigo-500" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {["Registration", "Business Plan", "Financial Statements", "Tax Compliance", "Collateral Docs", "Personal Ids", "Bank Statements", "Project Proposal"].map(doc => (
-                          <div key={doc} className="bg-gray-800 border border-gray-700 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-center">
-                            <p className="text-gray-300 text-sm font-medium mb-2">{doc}</p>
-                            {files[doc] ? (
-                              <div className="flex flex-col items-center gap-2"><span className="text-xs text-green-500 font-bold">✓ Uploaded</span><a href={files[doc]} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 underline">View</a></div>
+                    {/* IMPROVED UPLOAD GRID */}
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-3">Upload Collateral Evidence</label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {["Collateral Front", "Collateral Back", "Proof of Ownership"].map(doc => (
+                          <div 
+                            key={doc} 
+                            onClick={() => !files[doc] && handleUploadClick(doc)}
+                            className={`relative border-2 border-dashed rounded-lg h-32 flex flex-col items-center justify-center text-center transition overflow-hidden group
+                              ${files[doc] ? 'border-green-500/50 bg-gray-900' : 'border-gray-700 hover:bg-gray-700/50 cursor-pointer'}
+                            `}
+                          >
+                            {uploadingDoc === doc ? (
+                              <span className="text-xs text-yellow-500 animate-pulse">Uploading...</span>
+                            ) : files[doc] ? (
+                              <>
+                                <img src={files[doc]} alt="Uploaded" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition" />
+                                <div className="z-10 flex flex-col items-center">
+                                  <span className="text-xs text-green-400 font-bold bg-black/50 px-2 py-1 rounded mb-2">✓ Uploaded</span>
+                                  {/* Delete Button */}
+                                  <button 
+                                    onClick={(e) => handleRemoveFile(doc, e)}
+                                    className="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded shadow"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </>
                             ) : (
-                              <button onClick={() => handleUploadClick(doc)} disabled={uploadingDoc === doc} className="px-4 py-1.5 rounded text-xs font-bold bg-gray-700 text-gray-400 hover:bg-gray-600">{uploadingDoc === doc ? "..." : "↑ UPLOAD"}</button>
+                              <>
+                                <span className="text-2xl text-gray-500 mb-1">+</span>
+                                <span className="text-gray-400 text-xs font-medium">{doc}</span>
+                              </>
                             )}
                           </div>
                         ))}
                       </div>
-                   </div>
+                    </div>
+                  </div>
                 )}
 
-                {/* --- ITEM & MARKETEER FORMS are handled similarly if needed, or by logic above --- */}
-                {/* Note: I omitted the other 2 large blocks for brevity in this fix, 
-                    but the code logic remains: Personal Loan is now explicitly forced to show. */}
-
+                {/* --- ITEM LOAN FORM --- */}
                 {selectedProduct.id === 'item' && (
                   <div className="space-y-6">
                     <div className="grid grid-cols-2 gap-4">
@@ -361,15 +363,23 @@ export default function ApplyLoan() {
                         </div>
                       ))}
                     </div>
-                    {selectedItem && (
-                       <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                          <div className="flex justify-between text-sm text-gray-300 mb-2"><span>Repayment Plan</span><span>{months} Months</span></div>
-                          <input type="range" min="1" max="12" value={months} onChange={e=>setMonths(e.target.value)} className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"/>
-                          <div className="flex justify-between mt-4 pt-4 border-t border-gray-700"><div><p className="text-xs text-gray-500">Monthly Payment</p><p className="text-xl font-bold text-white">K {((selectedItem.price * 1.4)/months).toLocaleString(undefined, {maximumFractionDigits: 0})}</p></div></div>
-                       </div>
-                    )}
                   </div>
                 )}
+
+                 {/* --- BUSINESS FORM --- */}
+                 {selectedProduct.id === 'business' && (
+                    <div className="space-y-6">
+                      <input type="number" placeholder="Requested Capital" className="w-full bg-gray-900 border border-gray-700 rounded p-3 text-white" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                      <div className="grid grid-cols-2 gap-4">
+                          {["Business Reg", "Financials"].map(doc => (
+                              <button key={doc} onClick={()=>handleUploadClick(doc)} className="border border-gray-700 border-dashed p-4 text-gray-400 rounded hover:bg-gray-700">
+                                {files[doc] ? "✓ Uploaded " + doc : "Upload " + doc}
+                              </button>
+                          ))}
+                      </div>
+                    </div>
+                 )}
+
 
                 <div className="flex gap-4 pt-8">
                   <button onClick={() => setStep(1)} className="px-6 py-2.5 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700">Back</button>
@@ -378,16 +388,18 @@ export default function ApplyLoan() {
               </div>
             )}
 
+            {/* STEP 3: REVIEW */}
             {step === 3 && (
               <div className="bg-gray-800 border border-gray-700 rounded-xl p-8">
                 <h3 className="text-xl font-bold text-white mb-6">Review Application</h3>
                 <div className="bg-gray-900 rounded-lg p-6 space-y-4 mb-6">
                   <div className="flex justify-between border-b border-gray-800 pb-4"><span className="text-gray-400">Product</span><span className="font-medium text-white">{selectedProduct?.title}</span></div>
-                  {/* Dynamic Summary */}
-                  {selectedProduct.id === 'personal' && (
-                     <div className="flex justify-between border-b border-gray-800 pb-4"><span className="text-gray-400">Duration</span><span className="font-medium text-white">{weeks} Weeks</span></div>
-                  )}
                   {selectedProduct.id !== 'item' && <div className="flex justify-between border-b border-gray-800 pb-4"><span className="text-gray-400">Amount</span><span className="font-medium text-white">K {Number(amount).toLocaleString()}</span></div>}
+                  
+                  {/* Show Uploaded Files Count */}
+                  {Object.keys(files).length > 0 && (
+                     <div className="flex justify-between border-b border-gray-800 pb-4"><span className="text-gray-400">Files Attached</span><span className="font-medium text-green-400">{Object.keys(files).length} Files</span></div>
+                  )}
                 </div>
                 <div className="flex gap-4">
                   <button onClick={() => setStep(2)} className="px-6 py-2.5 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700">Edit</button>
@@ -415,7 +427,7 @@ export default function ApplyLoan() {
       </div>
       
       {/* File Input (Hidden) */}
-      <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,.pdf" />
     </div>
   );
 }
