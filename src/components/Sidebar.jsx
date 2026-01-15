@@ -142,7 +142,7 @@ export default function Sidebar() {
           <h2 className="text-xl font-bold text-white tracking-wider">DUNKU</h2>
           <div className="text-xs text-green-500 font-semibold tracking-widest">BUSINESS</div>
           <div className="text-[10px] text-gray-400 font-bold tracking-widest mt-0.5">SOLUTIONS LTD</div>
-          <p className="text-[10px] text-gray-500 mt-2">Your idea home field with Hope</p>
+          <p className="text-[10px] text-gray-500 mt-2">Your ideal home field with Hope</p>
         </div>
 
         <div className="px-6 mb-4 mt-6 lg:mt-0 shrink-0">
