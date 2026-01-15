@@ -6,7 +6,7 @@ const ClientDashboard = () => {
   const [loans, setLoans] = useState([]);
   const [collaterals, setCollaterals] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Payment Modal State
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [step, setStep] = useState(1);
@@ -28,13 +28,18 @@ const ClientDashboard = () => {
       Zamtel: { name: 'Zamtel Money', number: 'Loading...', color: 'bg-green-600 text-white', border: 'border-green-600', account: 'Loading...' }
   });
 
+  // --- FETCH DATA & REALTIME SUBSCRIPTIONS ---
   useEffect(() => {
     fetchData();
-    fetchPaymentSettings(); // <--- Fetch numbers from DB
+    fetchPaymentSettings();
     
-    // Realtime subscriptions
-    const subLoans = supabase.channel('client-loans').on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, fetchData).subscribe();
-    const subCol = supabase.channel('client-col').on('postgres_changes', { event: '*', schema: 'public', table: 'collateral' }, fetchData).subscribe();
+    const subLoans = supabase.channel('client-loans')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, fetchData)
+      .subscribe();
+    
+    const subCol = supabase.channel('client-col')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'collateral' }, fetchData)
+      .subscribe();
     
     return () => { supabase.removeChannel(subLoans); supabase.removeChannel(subCol); };
   }, []);
@@ -57,7 +62,6 @@ const ClientDashboard = () => {
   };
 
   const fetchData = async () => {
-    // setLoading(true); // Don't block UI on refresh
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
         setUser(user);
@@ -76,14 +80,36 @@ const ClientDashboard = () => {
     setLoading(false);
   };
 
-  // Stats
+  // --- HELPER FUNCTIONS FOR DUE DATES ---
+  const getDueDate = (loan) => {
+    if (!loan?.created_at) return "-";
+    const created = new Date(loan.created_at);
+    const due = new Date(created);
+    due.setDate(due.getDate() + (loan.payment_terms_days || 30));
+    return due.toLocaleDateString("en-US");
+  };
+
+  const getNextDueDate = () => {
+    const activeLoans = loans.filter(l => l.status === 'active');
+    if (!activeLoans.length) return "-";
+    const dueDates = activeLoans.map(l => {
+      const created = new Date(l.created_at);
+      const due = new Date(created);
+      due.setDate(due.getDate() + (l.payment_terms_days || 30));
+      return due;
+    });
+    const nextDue = dueDates.sort((a,b) => a - b)[0];
+    return nextDue.toLocaleDateString("en-US");
+  };
+
+  // --- STATS ---
   const activeLoans = loans.filter(l => l.status === 'active');
   const totalPrincipal = activeLoans.reduce((sum, l) => sum + Number(l.amount), 0);
   const totalRepaymentVal = activeLoans.reduce((sum, l) => sum + (Number(l.total_repayment) || Number(l.amount) * 1.4), 0);
   const totalBalance = activeLoans.reduce((sum, l) => sum + (Number(l.balance) || 0), 0); 
   const totalInterest = totalRepaymentVal - totalPrincipal;
-  
-  // File Upload Handler
+
+  // --- FILE UPLOAD ---
   const handleFileUpload = async (event, type) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -100,8 +126,9 @@ const ClientDashboard = () => {
     }
   };
 
+  // --- PAYMENT SUBMIT ---
   const handlePaymentSubmit = async () => {
-    if (!amountPaid || !transactionId || !paymentDate) return alert("Please fill all filleds.");
+    if (!amountPaid || !transactionId || !paymentDate) return alert("Please fill all fields.");
     setIsProcessing(true);
 
     const currentBalance = Number(selectedLoan.balance);
@@ -130,6 +157,7 @@ const ClientDashboard = () => {
       setProofUrl("");
   };
 
+  // --- EXPORT LOAN HISTORY ---
   const exportHistory = () => {
     const csvContent = "data:text/csv;charset=utf-8," 
       + "Loan ID,Amount,Balance,Status,Date\n"
@@ -146,16 +174,11 @@ const ClientDashboard = () => {
 
   return (
     <div className="flex-1 p-8 overflow-y-auto w-full bg-gray-900 text-gray-100 min-h-screen font-sans">
-      
+
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
           <div>
               <h1 className="text-2xl font-bold text-white">Welcome, {user?.email?.split('@')[0]}</h1>
-          </div>
-          <div className="flex items-center gap-4">
-             <div className="p-2 bg-gray-800 rounded-full border border-gray-700 cursor-pointer">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-             </div>
           </div>
       </div>
 
@@ -163,12 +186,7 @@ const ClientDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Active Loan Amount */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <div className="flex justify-between items-start">
-                  <p className="text-sm font-medium text-gray-500">Active Loan Amount</p>
-                  <div className="p-1.5 bg-blue-50 text-blue-500 rounded">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-                  </div>
-              </div>
+              <p className="text-sm font-medium text-gray-500">Active Loan Amount</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">K {totalPrincipal.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
               <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-xs">
                  <span className="text-gray-400">Loan Interest: <span className="text-orange-500 font-medium">K {totalInterest.toLocaleString()}</span></span>
@@ -178,43 +196,28 @@ const ClientDashboard = () => {
 
           {/* Loan Repayment */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <div className="flex justify-between items-start">
-                  <p className="text-sm font-medium text-gray-500">Loan Repayment</p>
-                  <div className="p-1.5 bg-orange-50 text-orange-500 rounded">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  </div>
-              </div>
+              <p className="text-sm font-medium text-gray-500">Loan Repayment</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">K {totalBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
               <div className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-500">
-                 Due Date: <span className="text-gray-900 font-medium">11/16/2023</span>
+                 Next Due Date: <span className="text-gray-900 font-medium">{getNextDueDate()}</span>
               </div>
           </div>
 
           {/* Active Collateral */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <div className="flex justify-between items-start">
-                  <p className="text-sm font-medium text-gray-500">Active Collateral</p>
-                  <div className="p-1.5 bg-green-50 text-green-500 rounded">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  </div>
-              </div>
+              <p className="text-sm font-medium text-gray-500">Active Collateral</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">{collaterals.length} Items</p>
-              <div className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-500">
-                 Secured Assets
-              </div>
+              <div className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-500">Secured Assets</div>
           </div>
       </div>
 
+      {/* Loan List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* My Loans List */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
               <div className="flex justify-between items-center mb-6">
                   <h2 className="text-lg font-bold text-gray-900">My Loans</h2>
-                  <button onClick={exportHistory} className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1 font-medium">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Download History
-                  </button>
+                  <button onClick={exportHistory} className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1 font-medium">Download History</button>
               </div>
-
               {loans.length === 0 ? <p className="text-gray-400 text-center py-8">No active loans.</p> : (
                   <div className="space-y-6">
                       {loans.map(loan => {
@@ -235,12 +238,10 @@ const ClientDashboard = () => {
                                           {loan.status}
                                       </span>
                                   </div>
-                                  
                                   <div className="flex justify-between text-xs text-gray-500 mb-2">
                                       <span>Remaining Balance <br/><b className="text-lg text-indigo-600">K {balance.toLocaleString()}</b></span>
                                       <span className="text-right">Principal + Interest <br/><b className="text-gray-800">K {total.toLocaleString()}</b></span>
                                   </div>
-
                                   <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                                       <div className="bg-blue-500 h-2 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
                                   </div>
@@ -248,16 +249,9 @@ const ClientDashboard = () => {
                                       <span>{Math.round(progress)}% Paid</span>
                                       <span>K {paid.toLocaleString()} Paid so far</span>
                                   </div>
-
-                                  {loan.status === 'active' && (
-                                      <button 
-                                          onClick={() => { setSelectedLoan(loan); setStep(1); }}
-                                          className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold flex items-center justify-center gap-2 text-sm transition-colors shadow-sm"
-                                      >
-                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-                                          Make Payment
-                                      </button>
-                                  )}
+                                  <div className="mt-2 text-xs text-gray-500">
+                                      Due Date: <span className="text-gray-900 font-medium">{getDueDate(loan)}</span>
+                                  </div>
                               </div>
                           );
                       })}
@@ -265,7 +259,7 @@ const ClientDashboard = () => {
               )}
           </div>
 
-          {/* My Collateral List */}
+          {/* Collateral List */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm h-fit">
               <h2 className="text-lg font-bold text-gray-900 mb-6">My Collateral</h2>
               {collaterals.length === 0 ? <p className="text-gray-400 text-center py-8">No collateral recorded.</p> : (
@@ -296,76 +290,6 @@ const ClientDashboard = () => {
           </div>
       </div>
 
-      {/* Payment Modal */}
-      {selectedLoan && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-              <div className="bg-white rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl relative animate-in fade-in zoom-in-95">
-                  <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white">
-                      <div>
-                          <h3 className="text-xl font-bold text-gray-900">Loan Repayment</h3>
-                          <p className="text-xs text-gray-500">Loan #{selectedLoan.id.slice(0,6)}</p>
-                      </div>
-                      <div className="flex gap-2">
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${step === 1 ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>1. Select Network</span>
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${step === 2 ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'}`}>2. Verify & Submit</span>
-                      </div>
-                      <button onClick={resetModal} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-                  </div>
-
-                  <div className="p-8 bg-white min-h-[400px]">
-                      {step === 1 ? (
-                          <div className="space-y-8 text-center">
-                              <div>
-                                  <h4 className="text-lg font-bold text-gray-800">Select Mobile Money Network</h4>
-                                  <p className="text-sm text-gray-500">Choose the provider you will use to send the funds.</p>
-                              </div>
-                              <div className="grid grid-cols-3 gap-4">
-                                  {Object.keys(networks).map(net => (
-                                      <button key={net} onClick={() => setSelectedNetwork(net)} className={`p-6 rounded-2xl border-2 flex flex-col items-center gap-3 transition-all ${selectedNetwork === net ? `border-indigo-500 bg-indigo-50 shadow-md transform scale-105` : 'border-gray-100 hover:border-gray-300'}`}>
-                                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shadow-sm ${networks[net].color.split(' ')[0]}`}>{net[0]}</div>
-                                          <span className="text-sm font-bold text-gray-700">{networks[net].name}</span>
-                                      </button>
-                                  ))}
-                              </div>
-                              <div className="flex flex-col md:flex-row items-center gap-6 bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                                  <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
-                                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=tel:${networks[selectedNetwork].number}`} alt="QR" className="w-32 h-32" />
-                                  </div>
-                                  <div className="text-left space-y-2">
-                                      <div><p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Official Repayment Number</p><p className="text-2xl font-mono font-bold text-gray-900">{networks[selectedNetwork].number}</p></div>
-                                      <div><p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Account Name</p><p className="text-sm font-bold text-gray-700">{networks[selectedNetwork].account}</p></div>
-                                      <div className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded text-xs font-mono inline-block">Ref: REF-{selectedLoan.id.slice(0,6)}</div>
-                                  </div>
-                              </div>
-                              <button onClick={() => setStep(2)} className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition-transform active:scale-95">Continue</button>
-                          </div>
-                      ) : (
-                          <div className="space-y-6">
-                              <div className="grid grid-cols-2 gap-4">
-                                  <div><label className="text-xs font-bold text-gray-700">Amount Paid (ZMW)</label><input type="number" className="w-full mt-1 p-3 bg-gray-100 border border-gray-300 rounded-lg font-bold text-gray-900 outline-none" value={amountPaid} onChange={e => setAmountPaid(e.target.value)} /></div>
-                                  <div><label className="text-xs font-bold text-gray-700">Transaction ID</label><input type="text" className="w-full mt-1 p-3 bg-gray-100 border border-gray-300 rounded-lg font-mono text-gray-900 outline-none" placeholder="e.g. 1765432190" value={transactionId} onChange={e => setTransactionId(e.target.value)} /></div>
-                              </div>
-                              <div><label className="text-xs font-bold text-gray-700">Payment Date</label><input type="datetime-local" className="w-full mt-1 p-2 border border-gray-300 rounded-lg text-sm text-gray-700 outline-none" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} /></div>
-                              <div className="grid grid-cols-2 gap-4">
-                                  <div onClick={() => proofInputRef.current.click()} className="border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition">
-                                      <input type="file" hidden ref={proofInputRef} onChange={(e) => handleFileUpload(e, 'proof')} />
-                                      {proofFile ? <div className="text-green-600 text-xs font-bold">Uploaded</div> : <><span className="text-xs text-gray-500 font-medium">Proof of Payment</span><span className="text-[10px] text-gray-400">(Image/PDF)</span></>}
-                                  </div>
-                                  <div onClick={() => smsInputRef.current.click()} className="border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition">
-                                      <input type="file" hidden ref={smsInputRef} />
-                                      <span className="text-xs text-gray-500 font-medium">SMS File</span><span className="text-[10px] text-gray-400">(Optional)</span>
-                                  </div>
-                              </div>
-                              <div className="flex gap-4 pt-4">
-                                  <button onClick={() => setStep(1)} className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50">Back</button>
-                                  <button onClick={handlePaymentSubmit} disabled={isProcessing} className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition-transform active:scale-95 disabled:opacity-50">{isProcessing ? 'Verifying...' : 'Submit Payment'}</button>
-                              </div>
-                          </div>
-                      )}
-                  </div>
-              </div>
-          </div>
-      )}
     </div>
   );
 };
