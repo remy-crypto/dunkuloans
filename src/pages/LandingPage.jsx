@@ -113,7 +113,7 @@ export default function LandingPage() {
                SOLUTIONS LTD
              </div>
              <div className="text-[9px] md:text-[10px] font-medium text-[#b8860b] italic mt-1">
-               your ideal home filled with Hope
+               your ideall home filled with Hope
              </div>
           </div>
         </div>
