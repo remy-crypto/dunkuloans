@@ -26,7 +26,7 @@ export default function AdminAgents() {
     <div className="space-y-6 text-gray-100">
       <div>
         <h1 className="text-2xl font-bold text-white">Agent Network</h1>
-        <p className="text-gray-400">Manage field agents and commissions.</p>
+        <p className="text-gray-400">Manage filled agents and commissions.</p>
       </div>
       <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
         <table className="w-full text-left text-sm text-gray-400">

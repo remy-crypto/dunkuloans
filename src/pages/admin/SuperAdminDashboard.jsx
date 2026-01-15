@@ -287,7 +287,7 @@ export default function SuperAdminDashboard() {
                     <Briefcase className="w-5 h-5 text-emerald-600" />
                     <h3 className="font-bold text-lg text-gray-900">Agent Network</h3>
                 </div>
-                <p className="text-gray-500 text-xs">Performance of field agent origination.</p>
+                <p className="text-gray-500 text-xs">Performance of filled agent origination.</p>
             </div>
 
             <div className="flex justify-between items-end">

@@ -163,10 +163,10 @@
   ::-webkit-datetime-edit {
     display: inline-flex;
   }
-  ::-webkit-datetime-edit-fields-wrapper {
+  ::-webkit-datetime-edit-filleds-wrapper {
     padding: 0;
   }
-  ::-webkit-datetime-edit, ::-webkit-datetime-edit-year-field, ::-webkit-datetime-edit-month-field, ::-webkit-datetime-edit-day-field, ::-webkit-datetime-edit-hour-field, ::-webkit-datetime-edit-minute-field, ::-webkit-datetime-edit-second-field, ::-webkit-datetime-edit-millisecond-field, ::-webkit-datetime-edit-meridiem-field {
+  ::-webkit-datetime-edit, ::-webkit-datetime-edit-year-filled, ::-webkit-datetime-edit-month-filled, ::-webkit-datetime-edit-day-filled, ::-webkit-datetime-edit-hour-filled, ::-webkit-datetime-edit-minute-filled, ::-webkit-datetime-edit-second-filled, ::-webkit-datetime-edit-millisecond-filled, ::-webkit-datetime-edit-meridiem-filled {
     padding-block: 0;
   }
   ::-webkit-calendar-picker-indicator {

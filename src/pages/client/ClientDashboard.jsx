@@ -101,7 +101,7 @@ const ClientDashboard = () => {
   };
 
   const handlePaymentSubmit = async () => {
-    if (!amountPaid || !transactionId || !paymentDate) return alert("Please fill all fields.");
+    if (!amountPaid || !transactionId || !paymentDate) return alert("Please fill all filleds.");
     setIsProcessing(true);
 
     const currentBalance = Number(selectedLoan.balance);

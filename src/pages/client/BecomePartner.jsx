@@ -24,7 +24,7 @@ export default function BecomePartner() {
 
   const handleApply = async (role) => {
     const confirmMsg = role === 'partner' 
-      ? "Apply to become a Field Agent? You will earn commissions on loans you originate." 
+      ? "Apply to become a filled Agent? You will earn commissions on loans you originate." 
       : "Apply to become an Investor? You will be able to fund liquidity pools and earn returns.";
       
     if (!confirm(confirmMsg)) return;

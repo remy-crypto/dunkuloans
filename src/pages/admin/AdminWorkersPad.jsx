@@ -52,7 +52,7 @@ export default function AdminWorkersPad() {
           <div>
             <h3 className="font-bold text-gray-900">{user.full_name || "Unknown"}</h3>
             <p className="text-sm text-gray-500">
-              {type === 'WORKER' ? (user.position || 'Staff') : 'Field Agent'}
+              {type === 'WORKER' ? (user.position || 'Staff') : 'filled Agent'}
             </p>
           </div>
         </div>
@@ -124,7 +124,7 @@ export default function AdminWorkersPad() {
                <div>
                   <h3 className="text-2xl font-bold">{selectedProfile.full_name}</h3>
                   <p className="text-white/80 text-sm uppercase tracking-wider font-bold mt-1">
-                    {selectedProfile.role === 'partner' ? 'Field Agent' : selectedProfile.position || 'Staff Member'}
+                    {selectedProfile.role === 'partner' ? 'filled Agent' : selectedProfile.position || 'Staff Member'}
                   </p>
                </div>
                <button onClick={() => setSelectedProfile(null)} className="text-white/70 hover:text-white">
