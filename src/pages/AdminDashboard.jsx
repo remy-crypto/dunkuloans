@@ -4,7 +4,7 @@ import Sidebar from "../components/Sidebar";
 import { supabase } from "../lib/SupabaseClient";
 
 // ==========================================
-// 0. HELPER: COLLATERAL IMAGE PARSER
+// 0. HELPER: COLLATERAL IMAGE PARSER (UPDATED)
 // ==========================================
 const CollateralDisplay = ({ description }) => {
   if (!description) return <p className="text-gray-500 text-sm italic">No details provided.</p>;
@@ -12,34 +12,48 @@ const CollateralDisplay = ({ description }) => {
   const lines = description.split('\n');
 
   return (
-    <div className="space-y-3 mt-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
       {lines.map((line, index) => {
-        // Regex to find URLs
         const urlRegex = /(https?:\/\/[^\s]+)/g;
         const match = line.match(urlRegex);
         
         if (match) {
           const url = match[0];
-          // Clean up label (e.g. remove "Collateral Image 1:")
-          const label = line.replace(url, '').replace(/[:]/g, '').trim(); 
+          // Clean the label: Remove the URL and words like "Collateral" or "Files"
+          const label = line
+            .replace(url, '')
+            .replace(/Collateral|Files|[:]/gi, '')
+            .trim(); 
 
           return (
-            <div key={index} className="flex flex-col gap-1">
-              {label && <span className="text-xs font-bold text-gray-400 uppercase">{label}</span>}
-              <a href={url} target="_blank" rel="noopener noreferrer" className="block group w-fit">
+            <div key={index} className="flex flex-col gap-2 bg-gray-800/60 p-3 rounded-lg border border-gray-700 hover:border-indigo-500/50 transition-colors group">
+              {label && (
+                <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-widest">
+                  {label}
+                </span>
+              )}
+              
+              <a href={url} target="_blank" rel="noopener noreferrer" className="block relative overflow-hidden rounded border border-gray-600">
                 <img 
                   src={url} 
-                  alt="Document" 
-                  className="h-32 w-auto object-cover rounded border border-gray-600 group-hover:opacity-80 transition"
+                  alt={label || "Document"} 
+                  className="h-32 w-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <span className="text-xs text-indigo-400 mt-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-                  View Full Size ↗
-                </span>
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition" />
+                <div className="absolute bottom-1 right-1 bg-black/60 px-2 py-1 rounded text-[9px] text-white opacity-0 group-hover:opacity-100 transition">
+                  OPEN FULL SIZE ↗
+                </div>
               </a>
             </div>
           );
         }
-        return <p key={index} className="text-gray-300 text-sm">{line}</p>;
+
+        // Render plain text lines (e.g., loan terms or descriptions)
+        return line.trim() ? (
+          <p key={index} className="col-span-full text-gray-300 text-sm border-l-2 border-indigo-500 pl-3 py-1 bg-indigo-500/5 mt-1">
+            {line}
+          </p>
+        ) : null;
       })}
     </div>
   );
@@ -112,9 +126,9 @@ const ExecutiveOverview = () => {
         <div className="lg:col-span-2 bg-gray-800 p-6 rounded-xl border border-gray-700">
           <h3 className="text-lg font-bold text-white mb-6">Revenue & Expenses</h3>
           <div className="h-64 flex items-end justify-between gap-2 px-2 relative border-b border-gray-700 pb-6">
-             {[40, 60, 45, 70, 85, 90].map((h, i) => (
+              {[40, 60, 45, 70, 85, 90].map((h, i) => (
                 <div key={i} className="w-full bg-indigo-600/20 hover:bg-indigo-600/40 rounded-t transition-all" style={{ height: `${h}%` }}></div>
-             ))}
+              ))}
           </div>
         </div>
 
@@ -266,7 +280,7 @@ const InvestorsView = () => {
 };
 
 // ==========================================
-// 4. UNDERWRITING VIEW (UPDATED)
+// 4. UNDERWRITING VIEW
 // ==========================================
 const UnderwritingView = () => {
   const [pendingLoans, setPendingLoans] = useState([]);
@@ -274,7 +288,6 @@ const UnderwritingView = () => {
 
   const fetchPending = async () => {
     setLoading(true);
-    // UPDATED: Now fetches `collateral` relation
     const { data, error } = await supabase
       .from('loans')
       .select('*, profiles(full_name, email, phone), collateral(*)') 
@@ -331,9 +344,8 @@ const UnderwritingView = () => {
               </div>
 
               {/* Collateral & Documents Section */}
-              <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 mb-6">
-                 <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Collateral & Documents</h4>
-                 {/* This handles the display of images vs text */}
+              <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-5 mb-6">
+                 <h4 className="text-xs font-bold text-gray-500 uppercase mb-4 tracking-widest border-b border-gray-800 pb-2">Verified Documents & Collateral</h4>
                  {loan.collateral && loan.collateral.length > 0 ? (
                     loan.collateral.map((c, idx) => (
                        <CollateralDisplay key={idx} description={c.description} />
@@ -367,7 +379,7 @@ const UnderwritingView = () => {
                 </button>
                 <button 
                   onClick={() => processLoan(loan.id, 'approve')}
-                  className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded transition shadow-lg shadow-green-900/20"
+                  className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded transition shadow-lg shadow-indigo-900/20 font-bold"
                 >
                   Approve & Disburse
                 </button>
@@ -394,7 +406,7 @@ const ComingSoonView = ({ title }) => (
 );
 
 // ==========================================
-// 6. MAIN ADMIN DASHBOARD (The Router)
+// 6. MAIN ADMIN DASHBOARD
 // ==========================================
 const AdminDashboard = () => {
   const location = useLocation();
