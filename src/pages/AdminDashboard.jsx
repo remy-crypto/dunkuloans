@@ -19,7 +19,6 @@ const CollateralDisplay = ({ description }) => {
         
         if (match) {
           const url = match[0];
-          // Clean the label: Remove the URL and words like "Collateral" or "Files"
           const label = line
             .replace(url, '')
             .replace(/Collateral|Files|[:]/gi, '')
@@ -48,7 +47,6 @@ const CollateralDisplay = ({ description }) => {
           );
         }
 
-        // Render plain text lines (e.g., loan terms or descriptions)
         return line.trim() ? (
           <p key={index} className="col-span-full text-gray-300 text-sm border-l-2 border-indigo-500 pl-3 py-1 bg-indigo-500/5 mt-1">
             {line}
@@ -280,21 +278,23 @@ const InvestorsView = () => {
 };
 
 // ==========================================
-// 4. UNDERWRITING VIEW
+// 4. UNDERWRITING VIEW (UPDATED)
 // ==========================================
 const UnderwritingView = () => {
   const [pendingLoans, setPendingLoans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(null);
 
   const fetchPending = async () => {
     setLoading(true);
+    // Explicitly using foreign key constraint name to avoid ambiguous join errors
     const { data, error } = await supabase
       .from('loans')
-      .select('*, profiles(full_name, email, phone), collateral(*)') 
+      .select('*, profiles!loans_borrower_id_fkey(full_name, email, phone), collateral(*)') 
       .eq('status', 'pending')
       .order('created_at', { ascending: true });
     
-    if (!error) setPendingLoans(data);
+    if (!error) setPendingLoans(data || []);
     else console.error(error);
     setLoading(false);
   };
@@ -302,15 +302,23 @@ const UnderwritingView = () => {
   useEffect(() => { fetchPending(); }, []);
 
   const processLoan = async (id, decision) => {
-    if (!confirm(`Are you sure you want to ${decision.toUpperCase()} this loan?`)) return;
+    if (!window.confirm(`Are you sure you want to ${decision.toUpperCase()} this loan?`)) return;
+    
+    setIsProcessing(id);
     
     const { error } = await supabase
       .from('loans')
       .update({ status: decision === 'approve' ? 'active' : 'rejected' })
       .eq('id', id);
 
-    if (error) alert(error.message);
-    else fetchPending();
+    if (error) {
+      alert(`Update failed: ${error.message}`);
+      setIsProcessing(null);
+    } else {
+      // Refresh only the pending list
+      setPendingLoans(prev => prev.filter(loan => loan.id !== id));
+      setIsProcessing(null);
+    }
   };
 
   return (
@@ -320,14 +328,16 @@ const UnderwritingView = () => {
         <p className="text-gray-400 mt-1">Review pending applications and assess risk.</p>
       </div>
 
-      {loading ? <p className="text-gray-500">Loading queue...</p> : pendingLoans.length === 0 ? (
+      {loading ? (
+        <p className="text-gray-500">Loading queue...</p>
+      ) : pendingLoans.length === 0 ? (
         <div className="bg-gray-800 p-8 rounded-xl border border-gray-700 text-center">
           <p className="text-gray-400">No pending loan applications.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6">
           {pendingLoans.map(loan => (
-            <div key={loan.id} className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+            <div key={loan.id} className={`bg-gray-800 rounded-xl border border-gray-700 p-6 ${isProcessing === loan.id ? 'opacity-50 pointer-events-none' : ''}`}>
               <div className="flex flex-col md:flex-row justify-between items-start mb-6">
                 <div>
                   <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -339,7 +349,7 @@ const UnderwritingView = () => {
                 </div>
                 <div className="text-right mt-4 md:mt-0">
                   <p className="text-xs text-gray-500 uppercase">Requested Amount</p>
-                  <p className="text-2xl font-bold text-indigo-400">K {loan.amount.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-indigo-400">K {loan.amount?.toLocaleString()}</p>
                 </div>
               </div>
 
@@ -372,16 +382,18 @@ const UnderwritingView = () => {
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-700">
                 <button 
+                  disabled={isProcessing === loan.id}
                   onClick={() => processLoan(loan.id, 'reject')}
-                  className="px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 rounded transition"
+                  className="px-4 py-2 text-sm text-red-400 hover:bg-red-900/20 rounded transition disabled:cursor-not-allowed"
                 >
-                  Reject Application
+                  {isProcessing === loan.id ? 'Processing...' : 'Reject Application'}
                 </button>
                 <button 
+                  disabled={isProcessing === loan.id}
                   onClick={() => processLoan(loan.id, 'approve')}
-                  className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded transition shadow-lg shadow-indigo-900/20 font-bold"
+                  className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded transition shadow-lg shadow-indigo-900/20 font-bold disabled:cursor-not-allowed"
                 >
-                  Approve & Disburse
+                  {isProcessing === loan.id ? 'Processing...' : 'Approve & Disburse'}
                 </button>
               </div>
             </div>
