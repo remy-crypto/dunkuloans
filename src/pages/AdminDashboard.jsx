@@ -287,7 +287,6 @@ const UnderwritingView = () => {
 
   const fetchPending = async () => {
     setLoading(true);
-    // Explicitly using foreign key constraint name to avoid ambiguous join errors
     const { data, error } = await supabase
       .from('loans')
       .select('*, profiles!loans_borrower_id_fkey(full_name, email, phone), collateral(*)') 
@@ -315,7 +314,6 @@ const UnderwritingView = () => {
       alert(`Update failed: ${error.message}`);
       setIsProcessing(null);
     } else {
-      // Refresh only the pending list
       setPendingLoans(prev => prev.filter(loan => loan.id !== id));
       setIsProcessing(null);
     }
@@ -353,7 +351,6 @@ const UnderwritingView = () => {
                 </div>
               </div>
 
-              {/* Collateral & Documents Section */}
               <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-5 mb-6">
                  <h4 className="text-xs font-bold text-gray-500 uppercase mb-4 tracking-widest border-b border-gray-800 pb-2">Verified Documents & Collateral</h4>
                  {loan.collateral && loan.collateral.length > 0 ? (
