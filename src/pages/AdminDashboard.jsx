@@ -4,6 +4,48 @@ import Sidebar from "../components/Sidebar";
 import { supabase } from "../lib/SupabaseClient";
 
 // ==========================================
+// 0. HELPER: COLLATERAL IMAGE PARSER
+// ==========================================
+const CollateralDisplay = ({ description }) => {
+  if (!description) return <p className="text-gray-500 text-sm italic">No details provided.</p>;
+
+  const lines = description.split('\n');
+
+  return (
+    <div className="space-y-3 mt-2">
+      {lines.map((line, index) => {
+        // Regex to find URLs
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const match = line.match(urlRegex);
+        
+        if (match) {
+          const url = match[0];
+          // Clean up label (e.g. remove "Collateral Image 1:")
+          const label = line.replace(url, '').replace(/[:]/g, '').trim(); 
+
+          return (
+            <div key={index} className="flex flex-col gap-1">
+              {label && <span className="text-xs font-bold text-gray-400 uppercase">{label}</span>}
+              <a href={url} target="_blank" rel="noopener noreferrer" className="block group w-fit">
+                <img 
+                  src={url} 
+                  alt="Document" 
+                  className="h-32 w-auto object-cover rounded border border-gray-600 group-hover:opacity-80 transition"
+                />
+                <span className="text-xs text-indigo-400 mt-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                  View Full Size ↗
+                </span>
+              </a>
+            </div>
+          );
+        }
+        return <p key={index} className="text-gray-300 text-sm">{line}</p>;
+      })}
+    </div>
+  );
+};
+
+// ==========================================
 // 1. EXECUTIVE OVERVIEW
 // ==========================================
 const ExecutiveOverview = () => {
@@ -224,7 +266,7 @@ const InvestorsView = () => {
 };
 
 // ==========================================
-// 4. UNDERWRITING VIEW (NEWLY BUILT)
+// 4. UNDERWRITING VIEW (UPDATED)
 // ==========================================
 const UnderwritingView = () => {
   const [pendingLoans, setPendingLoans] = useState([]);
@@ -232,14 +274,15 @@ const UnderwritingView = () => {
 
   const fetchPending = async () => {
     setLoading(true);
-    // Fetch pending loans + borrower details
+    // UPDATED: Now fetches `collateral` relation
     const { data, error } = await supabase
       .from('loans')
-      .select('*, profiles(full_name, email, phone)')
+      .select('*, profiles(full_name, email, phone), collateral(*)') 
       .eq('status', 'pending')
       .order('created_at', { ascending: true });
     
     if (!error) setPendingLoans(data);
+    else console.error(error);
     setLoading(false);
   };
 
@@ -272,25 +315,42 @@ const UnderwritingView = () => {
         <div className="grid grid-cols-1 gap-6">
           {pendingLoans.map(loan => (
             <div key={loan.id} className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-              <div className="flex justify-between items-start mb-4">
+              <div className="flex flex-col md:flex-row justify-between items-start mb-6">
                 <div>
-                  <h3 className="text-lg font-bold text-white">{loan.profiles?.full_name}</h3>
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                     {loan.profiles?.full_name}
+                     <span className="text-xs bg-gray-700 px-2 py-0.5 rounded text-gray-300 font-normal uppercase">{loan.type} Loan</span>
+                  </h3>
                   <p className="text-sm text-gray-400">{loan.profiles?.email}</p>
+                  <p className="text-xs text-gray-500 mt-1">Submitted: {new Date(loan.created_at).toLocaleDateString()}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-right mt-4 md:mt-0">
                   <p className="text-xs text-gray-500 uppercase">Requested Amount</p>
                   <p className="text-2xl font-bold text-indigo-400">K {loan.amount.toLocaleString()}</p>
                 </div>
               </div>
 
+              {/* Collateral & Documents Section */}
+              <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 mb-6">
+                 <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Collateral & Documents</h4>
+                 {/* This handles the display of images vs text */}
+                 {loan.collateral && loan.collateral.length > 0 ? (
+                    loan.collateral.map((c, idx) => (
+                       <CollateralDisplay key={idx} description={c.description} />
+                    ))
+                 ) : (
+                    <p className="text-sm text-gray-500 italic">No collateral information provided.</p>
+                 )}
+              </div>
+
               <div className="grid grid-cols-3 gap-4 mb-6 text-sm">
                 <div className="bg-gray-900 p-3 rounded border border-gray-800">
                   <p className="text-gray-500">Repayment Total</p>
-                  <p className="text-white font-medium">K {(loan.amount * 1.4).toLocaleString()}</p>
+                  <p className="text-white font-medium">K {(loan.total_repayment || loan.amount * 1.4).toLocaleString()}</p>
                 </div>
                 <div className="bg-gray-900 p-3 rounded border border-gray-800">
-                  <p className="text-gray-500">Interest Rate</p>
-                  <p className="text-white font-medium">40% Flat</p>
+                  <p className="text-gray-500">Term</p>
+                  <p className="text-white font-medium">Standard</p>
                 </div>
                 <div className="bg-gray-900 p-3 rounded border border-gray-800">
                   <p className="text-gray-500">Risk Score</p>
@@ -347,7 +407,7 @@ const AdminDashboard = () => {
       case '/investors': return <InvestorsView />;
       case '/kyc': return <ComingSoonView title="KYC Verification Queue" />;
       case '/collateral': return <ComingSoonView title="Collateral Review" />;
-      case '/underwriting': return <UnderwritingView />; // <--- NOW ACTIVE
+      case '/underwriting': return <UnderwritingView />;
       case '/support': return <ComingSoonView title="Support Tickets" />;
       default: return <ExecutiveOverview />;
     }
